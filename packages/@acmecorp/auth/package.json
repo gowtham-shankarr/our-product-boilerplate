@@ -3,22 +3,27 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./index.js",
-  "module": "./index.js",
-  "types": "./index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
       "import": "./index.js"
+    },
+    "./nextauth": {
+      "import": "./nextauth.js"
     }
   },
   "files": [
     "index.js",
-    "index.d.ts"
+    "nextauth.js"
   ],
   "dependencies": {
     "@acmecorp/db": "workspace:*",
-    "@acmecorp/env": "workspace:*"
+    "@acmecorp/env": "workspace:*",
+    "next-auth": "^4.24.0",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

@@ -28,6 +28,11 @@ export default function HomePage() {
                 API Demo
               </Button>
             </RLink>
+            <RLink to="/demo/auth">
+              <Button variant="outline" size="lg">
+                Auth Demo
+              </Button>
+            </RLink>
           </div>
         </div>
 

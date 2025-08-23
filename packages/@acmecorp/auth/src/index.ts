@@ -1,43 +1,99 @@
-// NextAuth configuration stubs
-export const authConfig = {
-  // Placeholder for NextAuth configuration
-  providers: [],
-  callbacks: {},
-  pages: {},
-} as const;
+// Core types and interfaces
+export type {
+  User,
+  UserRole,
+  Permission,
+  Session,
+  AuthState,
+  PermissionCheck,
+  RolePermissions,
+  AuthConfig,
+  AuthCallbacks,
+  RouteGuardOptions,
+  ApiGuardOptions,
+} from "./types";
 
-// RBAC utilities stubs
-export const roles = {
-  OWNER: "owner",
-  ADMIN: "admin",
-  MEMBER: "member",
-} as const;
+// Zod schemas and form types
+export {
+  EmailSchema,
+  PasswordSchema,
+  NameSchema,
+  UserRoleSchema,
+  PermissionSchema,
+  UserSchema,
+  SessionSchema,
+  LoginSchema,
+  RegisterSchema,
+  PasswordResetSchema,
+  PasswordChangeSchema,
+  ProfileUpdateSchema,
+  RoleAssignmentSchema,
+  PermissionCheckSchema,
+  AuthStateSchema,
+  // Inferred types
+  type LoginForm,
+  type RegisterForm,
+  type PasswordResetForm,
+  type PasswordChangeForm,
+  type ProfileUpdateForm,
+  type RoleAssignmentForm,
+  type PermissionCheckForm,
+} from "./schemas";
 
-export type Role = typeof roles[keyof typeof roles];
+// Permission system
+export {
+  ROLE_PERMISSIONS,
+  ROLE_HIERARCHY,
+  hasPermission,
+  hasPermissions,
+  hasRole,
+  getUserPermissions,
+  getRolePermissions,
+  canPerformAction,
+  createPermissionGuard,
+  createRoleGuard,
+  getMissingPermissions,
+  hasAnyPermission,
+  isValidPermission,
+  parsePermission,
+  getResourcesFromPermissions,
+  getActionsForResource,
+} from "./permissions";
 
-export const permissions = {
-  // Organization permissions
-  ORG_READ: "org:read",
-  ORG_WRITE: "org:write",
-  ORG_DELETE: "org:delete",
-  
-  // User permissions
-  USER_READ: "user:read",
-  USER_WRITE: "user:write",
-  USER_DELETE: "user:delete",
-  
-  // Billing permissions
-  BILLING_READ: "billing:read",
-  BILLING_WRITE: "billing:write",
-} as const;
+// Route and API protection
+export {
+  withAuth,
+  withApiAuth,
+  withServerActionAuth,
+  withPermission,
+  withRole,
+  createAuthMiddleware,
+  isProtectedRoute,
+  getAuthRedirectUrl,
+} from "./guards";
 
-export type Permission = typeof permissions[keyof typeof permissions];
+// React hooks
+export {
+  useAuth,
+  usePermission,
+  usePermissions,
+  useRole,
+  useUserPermissions,
+  useAuthNavigation,
+  useAuthStateChange,
+  useProtectedRoute,
+  useAuthForm,
+} from "./hooks";
 
-// Placeholder for auth utilities
-export const auth = {
-  // Add auth utilities here
-  checkPermission: (userRole: Role, requiredPermission: Permission) => {
-    // Placeholder implementation
-    return true;
-  },
-};
+// NextAuth configuration
+export {
+  defaultAuthConfig,
+  createAuthConfig,
+  getServerSession,
+  requireAuth,
+  getCurrentUser,
+  useSession,
+  isAuthenticated,
+  hasValidSession,
+  validateAuthConfig,
+} from "./nextauth";

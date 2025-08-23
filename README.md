@@ -238,6 +238,23 @@ import { Button } from "@acmecorp/ui";
 <Button variant="default">Click me</Button>
 ```
 
+#### `@acmecorp/icons`
+
+Centralized icon system with Lucide, React Icons, and custom SVG support.
+
+```typescript
+import { Icon } from "@acmecorp/icons";
+
+// Use unified icon component
+<Icon name="home" size={24} className="text-blue-500" />
+<Icon name="github" size={20} />
+<Icon name="custom-logo" size={32} />
+
+// Or import directly for better tree-shaking
+import { Home, User, Settings } from "@acmecorp/icons";
+<Home size={24} />
+```
+
 ### Domain Packages
 
 #### `@acmecorp/users`

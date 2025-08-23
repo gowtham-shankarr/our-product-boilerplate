@@ -58,7 +58,17 @@ const nextConfig = {
         __dirname,
         "../../packages/@acmecorp/api/src"
       ),
+      "@acmecorp/icons": path.resolve(
+        __dirname,
+        "../../packages/@acmecorp/icons/src"
+      ),
     };
+
+    // Configure SVGR for SVG imports
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ["@svgr/webpack"],
+    });
 
     return config;
   },

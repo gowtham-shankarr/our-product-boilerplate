@@ -36,6 +36,7 @@
       "@acmecorp/router": ["../../packages/@acmecorp/router/src"],
       "@acmecorp/router/*": ["../../packages/@acmecorp/router/src/*"],
       "@acmecorp/api": ["../../packages/@acmecorp/api/src"],
+      "@acmecorp/icons": ["../../packages/@acmecorp/icons/src"],
       "@acmecorp/api/*": ["../../packages/@acmecorp/api/src/*"]
     }
   },

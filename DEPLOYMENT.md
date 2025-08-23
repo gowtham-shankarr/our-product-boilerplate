@@ -27,6 +27,8 @@ This guide will help you deploy your SaaS Toolkit monorepo to Vercel.
    Install Command: cd ../.. && pnpm install
    ```
 
+   **⚠️ IMPORTANT**: Make sure to set the Root Directory to `apps/web` - this is crucial!
+
 3. **Environment Variables**:
 
    ```
@@ -212,6 +214,9 @@ pnpm db:seed
 
 **Issue**: "Build failed - wrong app detected"
 **Solution**: Use the deployment script: `./deploy.sh` or manually set root directory to `apps/web`
+
+**Issue**: "No Next.js version detected"
+**Solution**: Make sure Root Directory is set to `apps/web` in Vercel project settings
 
 ### Runtime Errors
 

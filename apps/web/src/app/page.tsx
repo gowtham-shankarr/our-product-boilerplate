@@ -1,4 +1,6 @@
 import { Button } from "@acmecorp/ui";
+import { RLink } from "@/components/RLink";
+import { routes } from "@/lib/routes";
 
 export default function HomePage() {
   return (
@@ -9,18 +11,21 @@ export default function HomePage() {
             SaaS Toolkit
           </h1>
           <p className="mt-6 text-lg leading-8 text-muted-foreground">
-            A comprehensive monorepo for building modern SaaS applications with Next.js, PostgreSQL, and shadcn/ui.
+            A comprehensive monorepo for building modern SaaS applications with
+            Next.js, PostgreSQL, and shadcn/ui.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
-            <Button size="lg">
-              Get Started
-            </Button>
-            <Button variant="outline" size="lg">
-              Learn More
-            </Button>
+            <RLink to={routes.dashboard}>
+              <Button size="lg">Get Started</Button>
+            </RLink>
+            <RLink to={routes.demo.routing}>
+              <Button variant="outline" size="lg">
+                Router Demo
+              </Button>
+            </RLink>
           </div>
         </div>
-        
+
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-lg border bg-card p-6">
             <h3 className="text-lg font-semibold">Next.js</h3>

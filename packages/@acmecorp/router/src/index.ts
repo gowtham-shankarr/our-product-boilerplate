@@ -1,10 +1,57 @@
-// Typed route helper stubs
-export const routes = {
-  home: "/",
-  dashboard: "/dashboard",
-  users: "/users",
-  organizations: "/organizations",
-  settings: "/settings",
-} as const;
+// Core types
+export type {
+  RouteDescriptor,
+  HrefInput,
+  BuilderResult,
+  NavigationOptions,
+  RLinkProps,
+  RouteName,
+  Href,
+  InferParams,
+  InferSearch,
+  RouteBuilder,
+  RouteRegistry,
+  ParsedSegment,
+} from "./types";
 
-export type Route = (typeof routes)[keyof typeof routes];
+// Route registry and creation
+export {
+  createRoute,
+  createRouteRegistry,
+  createBuilder,
+  extractRoutes,
+  findRouteByName,
+  getRouteNames,
+} from "./registry";
+
+// Href generation
+export { href, toHref, createHrefBuilder, validatePathname } from "./href";
+
+// Navigation hooks
+export { useNav, useIsActive, useCurrentRoute } from "./navigation";
+
+// Components
+export { RLink, RNavButton, getLinkProps } from "./components";
+
+// Parameter utilities
+export {
+  useRouteParams,
+  useSearch,
+  readSearchParams,
+  extractParams,
+  matchAndExtractParams,
+} from "./params";
+
+// Utility functions
+export {
+  parseTemplate,
+  join,
+  resolveTemplate,
+  serializeSearch,
+  withSearch,
+  setQueryParam,
+  removeQueryParam,
+  toggleInArrayParam,
+  readSearch,
+  matchesTemplate,
+} from "./utils";

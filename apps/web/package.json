@@ -20,6 +20,8 @@
     "@acmecorp/router": "workspace:*",
     "@acmecorp/ui": "workspace:*",
     "@acmecorp/users": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-query-devtools": "^5.85.5",
     "lucide-react": "^0.294.0",
     "next": "^14.0.4",
     "react": "^18.2.0",

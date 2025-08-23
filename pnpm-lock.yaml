@@ -114,6 +114,12 @@ importers:
       '@acmecorp/users':
         specifier: workspace:*
         version: link:../../packages/@acmecorp/users
+      '@tanstack/react-query':
+        specifier: ^5.0.0
+        version: 5.85.5(react@18.3.1)
+      '@tanstack/react-query-devtools':
+        specifier: ^5.85.5
+        version: 5.85.5(@tanstack/react-query@5.85.5)(react@18.3.1)
       lucide-react:
         specifier: ^0.294.0
         version: 0.294.0(react@18.3.1)
@@ -172,7 +178,19 @@ importers:
       '@acmecorp/env':
         specifier: workspace:*
         version: link:../env
+      ky:
+        specifier: ^1.2.0
+        version: 1.9.0
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      zod:
+        specifier: ^3.22.0
+        version: 3.25.76
     devDependencies:
+      '@tanstack/react-query':
+        specifier: ^5.0.0
+        version: 5.85.5(react@18.3.1)
       '@types/node':
         specifier: ^20.10.0
         version: 20.19.11
@@ -3469,6 +3487,32 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@tanstack/query-core@5.85.5:
+    resolution: {integrity: sha512-KO0WTob4JEApv69iYp1eGvfMSUkgw//IpMnq+//cORBzXf0smyRwPLrUvEe5qtAEGjwZTXrjxg+oJNP/C00t6w==}
+
+  /@tanstack/query-devtools@5.84.0:
+    resolution: {integrity: sha512-fbF3n+z1rqhvd9EoGp5knHkv3p5B2Zml1yNRjh7sNXklngYI5RVIWUrUjZ1RIcEoscarUb0+bOvIs5x9dwzOXQ==}
+    dev: false
+
+  /@tanstack/react-query-devtools@5.85.5(@tanstack/react-query@5.85.5)(react@18.3.1):
+    resolution: {integrity: sha512-6Ol6Q+LxrCZlQR4NoI5181r+ptTwnlPG2t7H9Sp3klxTBhYGunONqcgBn2YKRPsaKiYM8pItpKMdMXMEINntMQ==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.85.5
+      react: ^18 || ^19
+    dependencies:
+      '@tanstack/query-devtools': 5.84.0
+      '@tanstack/react-query': 5.85.5(react@18.3.1)
+      react: 18.3.1
+    dev: false
+
+  /@tanstack/react-query@5.85.5(react@18.3.1):
+    resolution: {integrity: sha512-/X4EFNcnPiSs8wM2v+b6DqS5mmGeuJQvxBglmDxl6ZQb5V26ouD2SJYAcC3VjbNwqhY2zjxVD15rDA5nGbMn3A==}
+    peerDependencies:
+      react: ^18 || ^19
+    dependencies:
+      '@tanstack/query-core': 5.85.5
+      react: 18.3.1
+
   /@trysound/sax@0.2.0:
     resolution: {integrity: sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==}
     engines: {node: '>=10.13.0'}
@@ -5596,6 +5640,11 @@ packages:
       json-buffer: 3.0.1
     dev: true
 
+  /ky@1.9.0:
+    resolution: {integrity: sha512-NgBeR/cu7kuC4BAeF1rnXhfoI2uQ9RBe8zl5vo87ASsf1iIQoCeOxyt6Io6K4Ki++5ItCavXAtbEWWCGFciQ6g==}
+    engines: {node: '>=18'}
+    dev: false
+
   /language-subtag-registry@0.3.23:
     resolution: {integrity: sha512-0K65Lea881pHotoGEa5gDlMxt3pctLi2RplBb7Ezh4rRdLEOtgi7n4EwK9lamnUCkKBqaeKRVebTq6BAxSkpXQ==}
     dev: true
@@ -6297,7 +6346,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
-    dev: false
 
   /read-cache@1.0.0:
     resolution: {integrity: sha512-Owdv/Ft7IjOgm/i0xvNDZ1LrRANRfew4b2prF3OWMQLxLfu3bS8FVhCsrSCMK4lR56Y9ya+AThoTpDCTxCmpRA==}

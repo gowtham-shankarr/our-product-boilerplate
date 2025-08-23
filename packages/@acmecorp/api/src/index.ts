@@ -1,24 +1,103 @@
-// API layer stubs - placeholder for tRPC or REST helpers
-export const api = {
-  // Placeholder for API client
-  client: {} as any,
-  
-  // Placeholder for API utilities
-  utils: {
-    // Add API utilities here
-  },
-};
+// Core types and interfaces
+export type {
+  ApiError,
+  ApiErrorCode,
+  FieldError,
+  ApiResponse,
+  ApiContract,
+  CrudContracts,
+  RequestConfig,
+  FetcherResponse,
+  ClientConfig,
+  NavigationOptions,
+  RequestContext,
+} from "./types";
 
-// Export types for API responses
-export type ApiResponse<T = any> = {
-  data: T;
-  error?: string;
-  success: boolean;
-};
+// Error handling
+export {
+  errors,
+  generateRequestId,
+  normalizeZodErrors,
+  mapStatusToErrorCode,
+  createApiError,
+  normalizeError,
+} from "./errors";
 
-// Placeholder for API endpoints
-export const endpoints = {
-  users: "/api/users",
-  organizations: "/api/organizations",
-  auth: "/api/auth",
-} as const;
+// Transport layer
+export { fetcher, createClient } from "./transport";
+
+// Contracts and schemas
+export {
+  contracts,
+  userContracts,
+  orgContracts,
+  projectContracts,
+  authContracts,
+  // Base schemas
+  IdSchema,
+  EmailSchema,
+  NameSchema,
+  DescriptionSchema,
+  PaginationQuerySchema,
+  DateRangeQuerySchema,
+  // User schemas
+  UserSchema,
+  CreateUserSchema,
+  UpdateUserSchema,
+  UserListQuerySchema,
+  // Organization schemas
+  OrganizationSchema,
+  CreateOrganizationSchema,
+  UpdateOrganizationSchema,
+  OrganizationListQuerySchema,
+  // Project schemas
+  ProjectSchema,
+  CreateProjectSchema,
+  UpdateProjectSchema,
+  ProjectListQuerySchema,
+  // Auth schemas
+  LoginSchema,
+  RegisterSchema,
+  AuthResponseSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
+  // Inferred types
+  type User,
+  type CreateUser,
+  type UpdateUser,
+  type UserListQuery,
+  type Organization,
+  type CreateOrganization,
+  type UpdateOrganization,
+  type OrganizationListQuery,
+  type Project,
+  type CreateProject,
+  type UpdateProject,
+  type ProjectListQuery,
+  type Login,
+  type Register,
+  type AuthResponse,
+} from "./contracts";
+
+// React Query helpers
+export {
+  queryKeys,
+  createRetryPolicy,
+  createInvalidationHelpers,
+  createOptimisticHelpers,
+  createErrorHandlers,
+  queryConfig,
+  mutationConfig,
+} from "./rq";
+
+// Server Actions
+export {
+  createServerAction,
+  createFormAction,
+  createJsonAction,
+  extractFieldErrors,
+  isSuccess,
+  isError,
+  getErrorMessage,
+  type ServerActionResult,
+} from "./actions";

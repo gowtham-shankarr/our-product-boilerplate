@@ -23,6 +23,11 @@ export default function HomePage() {
                 Router Demo
               </Button>
             </RLink>
+            <RLink to="/demo/api">
+              <Button variant="outline" size="lg">
+                API Demo
+              </Button>
+            </RLink>
           </div>
         </div>
 

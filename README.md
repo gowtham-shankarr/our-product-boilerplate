@@ -406,7 +406,8 @@ This monorepo is optimized for Vercel deployment. See the complete deployment gu
 1. **Connect to Vercel**:
    - Import your Git repository
    - Set root directory to `apps/web`
-   - Build command: `cd ../.. && pnpm build`
+   - Build command: `pnpm build`
+   - Install command: `cd ../.. && pnpm install`
 
 2. **Environment Variables**:
 
@@ -417,6 +418,16 @@ This monorepo is optimized for Vercel deployment. See the complete deployment gu
    ```
 
 3. **Deploy**: Click deploy and you're live! 🎉
+
+### Alternative: Use Deployment Script
+
+```bash
+# Make the script executable (first time only)
+chmod +x deploy.sh
+
+# Run the deployment script
+./deploy.sh
+```
 
 ## 📚 Additional Resources
 

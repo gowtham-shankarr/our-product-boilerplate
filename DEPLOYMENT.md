@@ -22,9 +22,9 @@ This guide will help you deploy your SaaS Toolkit monorepo to Vercel.
    ```
    Framework Preset: Next.js
    Root Directory: apps/web
-   Build Command: cd ../.. && pnpm build
-   Output Directory: apps/web/.next
-   Install Command: pnpm install
+   Build Command: pnpm build
+   Output Directory: .next
+   Install Command: cd ../.. && pnpm install
    ```
 
 3. **Environment Variables**:
@@ -206,6 +206,12 @@ pnpm db:seed
 
 **Issue**: "Prisma Client not generated"
 **Solution**: Add `pnpm db:generate` to build command
+
+**Issue**: "No Output Directory named 'public' found"
+**Solution**: Make sure you're building the web app, not the admin app. Set root directory to `apps/web`
+
+**Issue**: "Build failed - wrong app detected"
+**Solution**: Use the deployment script: `./deploy.sh` or manually set root directory to `apps/web`
 
 ### Runtime Errors
 

@@ -33,6 +33,11 @@ export default function HomePage() {
                 Auth Demo
               </Button>
             </RLink>
+            <RLink to="/demo/organizations">
+              <Button variant="outline" size="lg">
+                Organizations Demo
+              </Button>
+            </RLink>
           </div>
         </div>
 

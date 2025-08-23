@@ -1,3 +1,6 @@
+import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo } from "react";
 import type { User, Permission, UserRole, AuthState } from "./types";
 import {
   hasPermission,
@@ -5,25 +8,6 @@ import {
   hasRole,
   getUserPermissions,
 } from "./permissions";
-
-// Placeholder functions - these would be imported from next-auth/react and next/navigation in actual usage
-const useSession = () => ({
-  data: { user: null },
-  status: "unauthenticated" as const,
-});
-const signIn = async (provider?: any, options?: any) => ({
-  ok: false,
-  error: "Not implemented",
-});
-const signOut = async (options?: any) => ({
-  ok: false,
-  error: "Not implemented",
-});
-const useRouter = () => ({ push: (url: string) => {} });
-
-// Placeholder React hooks - these would be imported from react in actual usage
-const useCallback = (fn: any, deps: any[]) => fn;
-const useMemo = (fn: any, deps: any[]) => fn();
 
 /**
  * Enhanced auth hook with permission checking
@@ -159,22 +143,22 @@ export function useAuthNavigation() {
       const url = callbackUrl
         ? `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
         : "/auth/login";
-      router.push(url);
+      router.push(url as any);
     },
     [router]
   );
 
   const navigateToDashboard = useCallback(() => {
-    router.push("/dashboard");
+    router.push("/dashboard" as any);
   }, [router]);
 
   const navigateToProfile = useCallback(() => {
-    router.push("/profile");
+    router.push("/profile" as any);
   }, [router]);
 
   const navigateToAdmin = useCallback(() => {
     if (user && hasRole(user, "admin")) {
-      router.push("/admin");
+      router.push("/admin" as any);
     }
   }, [user, router]);
 
@@ -227,7 +211,7 @@ export function useProtectedRoute(
   const redirect = useCallback(() => {
     if (!isLoading && !hasAccess) {
       const url = redirectTo || "/auth/login";
-      router.push(url);
+      router.push(url as any);
     }
   }, [hasAccess, isLoading, redirectTo, router]);
 
@@ -256,7 +240,7 @@ export function useAuthForm() {
         });
 
         if (result?.ok) {
-          router.push("/dashboard");
+          router.push("/dashboard" as any);
           return { success: true };
         } else {
           return { success: false, error: result?.error || "Login failed" };
@@ -271,7 +255,7 @@ export function useAuthForm() {
   const handleLogout = useCallback(async () => {
     try {
       await signOut({ redirect: false });
-      router.push("/");
+      router.push("/" as any);
       return { success: true };
     } catch (error) {
       return { success: false, error: "Logout failed" };

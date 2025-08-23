@@ -1,3 +1,5 @@
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import type {
   User,
   Permission,
@@ -9,20 +11,22 @@ import { hasPermission, hasPermissions, hasRole } from "./permissions";
 
 /**
  * Route protection for Next.js pages
- * Note: This is a placeholder implementation. In actual usage, you would import NextRequest and NextResponse from next/server
  */
 export function withAuth(
-  handler: (req: any, user: User) => Promise<any> | any,
+  handler: (
+    req: NextRequest,
+    user: User
+  ) => Promise<NextResponse> | NextResponse,
   options: RouteGuardOptions = {}
 ) {
-  return async (req: any): Promise<any> => {
+  return async (req: NextRequest): Promise<NextResponse> => {
     try {
       // Get user from session (this would be implemented with NextAuth)
       const user = await getCurrentUser(req);
 
       if (!user && options.requireAuth !== false) {
         const redirectUrl = options.redirectTo || "/auth/login";
-        return { redirect: redirectUrl };
+        return NextResponse.redirect(new URL(redirectUrl, req.url));
       }
 
       // Check role requirements
@@ -31,7 +35,7 @@ export function withAuth(
         user &&
         !hasRole(user, options.requiredRole)
       ) {
-        return { redirect: "/unauthorized" };
+        return NextResponse.redirect(new URL("/unauthorized", req.url));
       }
 
       // Check permission requirements
@@ -41,36 +45,35 @@ export function withAuth(
           options.requiredPermissions
         );
         if (!permissionCheck.hasPermission) {
-          return { redirect: "/unauthorized" };
+          return NextResponse.redirect(new URL("/unauthorized", req.url));
         }
       }
 
       return handler(req, user!);
     } catch (error) {
       console.error("Auth guard error:", error);
-      return { redirect: "/auth/login" };
+      return NextResponse.redirect(new URL("/auth/login", req.url));
     }
   };
 }
 
 /**
  * API route protection
- * Note: This is a placeholder implementation. In actual usage, you would import NextRequest and NextResponse from next/server
  */
 export function withApiAuth(
-  handler: (req: any, user: User) => Promise<any> | any,
+  handler: (
+    req: NextRequest,
+    user: User
+  ) => Promise<NextResponse> | NextResponse,
   options: ApiGuardOptions = {}
 ) {
-  return async (req: any): Promise<any> => {
+  return async (req: NextRequest): Promise<NextResponse> => {
     try {
       // Get user from session
       const user = await getCurrentUser(req);
 
       if (!user && options.requireAuth !== false) {
-        return {
-          json: { error: "Unauthorized" },
-          status: 401,
-        };
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
       // Check role requirements
@@ -79,10 +82,10 @@ export function withApiAuth(
         user &&
         !hasRole(user, options.requiredRole)
       ) {
-        return {
-          json: { error: "Insufficient permissions" },
-          status: 403,
-        };
+        return NextResponse.json(
+          { error: "Insufficient permissions" },
+          { status: 403 }
+        );
       }
 
       // Check permission requirements
@@ -92,13 +95,13 @@ export function withApiAuth(
           options.requiredPermissions
         );
         if (!permissionCheck.hasPermission) {
-          return {
-            json: {
+          return NextResponse.json(
+            {
               error: "Insufficient permissions",
               missingPermissions: permissionCheck.missingPermissions,
             },
-            status: 403,
-          };
+            { status: 403 }
+          );
         }
       }
 
@@ -108,10 +111,10 @@ export function withApiAuth(
       if (options.onUnauthorized) {
         options.onUnauthorized(error as Error);
       }
-      return {
-        json: { error: "Authentication failed" },
-        status: 401,
-      };
+      return NextResponse.json(
+        { error: "Authentication failed" },
+        { status: 401 }
+      );
     }
   };
 }
@@ -194,7 +197,7 @@ export function withRole(
  * Create a middleware for route protection
  */
 export function createAuthMiddleware(options: RouteGuardOptions = {}) {
-  return function authMiddleware(req: any): any {
+  return function authMiddleware(req: NextRequest): NextResponse | null {
     // This would be used in Next.js middleware
     // For now, return null to allow the request to continue
     return null;
@@ -232,7 +235,7 @@ export function getAuthRedirectUrl(
 }
 
 // Placeholder functions - these would be implemented with NextAuth
-async function getCurrentUser(req: any): Promise<User | null> {
+async function getCurrentUser(req: NextRequest): Promise<User | null> {
   // This would use NextAuth's getToken or similar
   // For now, return null
   return null;

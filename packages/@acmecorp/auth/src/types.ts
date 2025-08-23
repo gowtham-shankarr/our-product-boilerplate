@@ -17,16 +17,10 @@ export type Permission =
   | "analytics:read"
   | "analytics:write";
 
-// Base user interface (similar to NextAuth DefaultSession["user"])
-export interface BaseUser {
-  id: string;
-  email: string;
-  name?: string;
-  avatar?: string;
-}
+import type { DefaultSession, DefaultUser } from "next-auth";
 
 // Extended user interface
-export interface User extends BaseUser {
+export interface User extends DefaultUser {
   role: UserRole;
   permissions: Permission[];
   emailVerified?: Date;
@@ -34,16 +28,26 @@ export interface User extends BaseUser {
   updatedAt: Date;
 }
 
-// Base session interface (similar to NextAuth DefaultSession)
-export interface BaseSession {
-  user: BaseUser;
-  expires: string;
-}
-
 // Extended session interface
-export interface Session extends BaseSession {
+export interface Session extends DefaultSession {
   user: User;
   accessToken?: string;
+}
+
+// Module augmentation for NextAuth
+declare module "next-auth" {
+  interface Session {
+    user: User;
+    accessToken?: string;
+  }
+
+  interface User {
+    role: UserRole;
+    permissions: Permission[];
+    emailVerified?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+  }
 }
 
 // Auth state for client-side
@@ -83,14 +87,23 @@ export interface AuthConfig {
 
 // NextAuth callback types
 export interface AuthCallbacks {
-  signIn?: (
-    user: any,
-    account: any,
-    profile: any
-  ) => boolean | Promise<boolean>;
-  redirect?: (url: string, baseUrl: string) => string | Promise<string>;
-  session?: (session: Session, user: any) => Session | Promise<Session>;
-  jwt?: (token: any, user: any, account: any) => any | Promise<any>;
+  signIn?: (params: {
+    user: any;
+    account: any;
+    profile?: any;
+    email?: any;
+    credentials?: any;
+  }) => boolean | Promise<boolean>;
+  redirect?: (params: {
+    url: string;
+    baseUrl: string;
+  }) => string | Promise<string>;
+  session?: (params: {
+    session: Session;
+    token: any;
+    user: any;
+  }) => Session | Promise<Session>;
+  jwt?: (params: { token: any; user: any; account: any }) => any | Promise<any>;
 }
 
 // Route protection options

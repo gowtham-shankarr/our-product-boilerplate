@@ -8,6 +8,7 @@ import {
   usePermissions,
   useRole,
   hasPermission,
+  hasPermissions,
   hasRole,
   getUserPermissions,
   ROLE_PERMISSIONS,
@@ -53,19 +54,28 @@ export default function AuthDemoPage() {
   const [testPermission, setTestPermission] = useState("users:read");
   const [testRole, setTestRole] = useState("user");
 
-  // Auth hooks (these would work with real NextAuth in a real app)
-  const {
-    user,
-    isLoading,
-    isAuthenticated,
-    hasPermission: userHasPermission,
-  } = useAuth();
-  const canReadUsers = usePermission("users:read");
-  const { hasAll, hasAny, missing } = usePermissions([
+  // For demo purposes, we'll use the selected user as the "current user"
+  // In a real app, this would come from NextAuth useAuth()
+  const currentUser = selectedUser;
+  const isLoading = false;
+  const isAuthenticated = true;
+
+  // Permission checking for the current user
+  const userHasPermission = (permission: Permission) =>
+    hasPermission(currentUser, permission);
+  const canReadUsers = userHasPermission("users:read");
+
+  // Use direct permission functions instead of hooks for demo
+  const permissionsCheck = hasPermissions(currentUser, [
     "users:read",
     "users:write",
   ]);
-  const isAdmin = useRole("admin");
+  const hasAll = permissionsCheck.hasPermission;
+  const hasAny = ["users:read", "users:write"].some((permission) =>
+    hasPermission(currentUser, permission as Permission)
+  );
+  const missing = permissionsCheck.missingPermissions;
+  const isAdmin = hasRole(currentUser, "admin");
 
   // Permission checking functions
   const checkPermission = () => {
@@ -276,7 +286,7 @@ export default function AuthDemoPage() {
             <div className="p-2 bg-muted rounded text-sm">
               <div>Loading: {isLoading ? "Yes" : "No"}</div>
               <div>Authenticated: {isAuthenticated ? "Yes" : "No"}</div>
-              <div>User: {user ? user.name : "None"}</div>
+              <div>User: {currentUser ? currentUser.name : "None"}</div>
             </div>
           </div>
         </div>

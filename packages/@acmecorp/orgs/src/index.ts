@@ -1,4 +1,16 @@
-// Organization domain stubs
+// Export schemas (includes types)
+export * from "./schemas";
+
+// Export contracts
+export * from "./contracts";
+
+// Export services
+export * from "./services";
+
+// Export hooks
+export * from "./hooks";
+
+// Legacy exports for backward compatibility
 export const orgService = {
   // Placeholder for organization service methods
   create: async (data: any) => ({ id: "org-1", ...data }),

@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   Home,
   User,
+  Users,
   Settings,
   Search,
   Mail,
@@ -16,6 +17,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Menu,
   Edit,
   Trash2,
@@ -51,6 +53,25 @@ import {
   XCircle,
   MinusCircle,
   PlusCircle,
+  Activity,
+  CreditCard,
+  TrendingUp,
+  AudioWaveform,
+  BookOpen,
+  Bot,
+  Command,
+  Frame,
+  GalleryVerticalEnd,
+  Map,
+  PieChart,
+  Settings2,
+  Terminal,
+  Folder,
+  Forward,
+  ChevronsUpDown,
+  BadgeCheck,
+  LogOut,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -86,6 +107,7 @@ export type IconName =
   // Lucide icons
   | "home"
   | "user"
+  | "users"
   | "settings"
   | "search"
   | "mail"
@@ -100,6 +122,7 @@ export type IconName =
   | "arrow-left"
   | "chevron-down"
   | "chevron-up"
+  | "chevron-right"
   | "menu"
   | "edit"
   | "trash2"
@@ -135,6 +158,25 @@ export type IconName =
   | "x-circle"
   | "minus-circle"
   | "plus-circle"
+  | "activity"
+  | "credit-card"
+  | "trending-up"
+  | "audio-waveform"
+  | "book-open"
+  | "bot"
+  | "command"
+  | "frame"
+  | "gallery-vertical-end"
+  | "map"
+  | "pie-chart"
+  | "settings2"
+  | "terminal"
+  | "folder"
+  | "forward"
+  | "chevrons-up-down"
+  | "badge-check"
+  | "log-out"
+  | "sparkles"
   // FontAwesome icons
   | "github"
   | "twitter"
@@ -164,6 +206,7 @@ export const iconRegistry: Record<IconName, React.ComponentType<any>> = {
   // Lucide icons
   home: Home,
   user: User,
+  users: Users,
   settings: Settings,
   search: Search,
   mail: Mail,
@@ -178,6 +221,7 @@ export const iconRegistry: Record<IconName, React.ComponentType<any>> = {
   "arrow-left": ArrowLeft,
   "chevron-down": ChevronDown,
   "chevron-up": ChevronUp,
+  "chevron-right": ChevronRight,
   menu: Menu,
   edit: Edit,
   trash2: Trash2,
@@ -213,6 +257,25 @@ export const iconRegistry: Record<IconName, React.ComponentType<any>> = {
   "x-circle": XCircle,
   "minus-circle": MinusCircle,
   "plus-circle": PlusCircle,
+  activity: Activity,
+  "credit-card": CreditCard,
+  "trending-up": TrendingUp,
+  "audio-waveform": AudioWaveform,
+  "book-open": BookOpen,
+  bot: Bot,
+  command: Command,
+  frame: Frame,
+  "gallery-vertical-end": GalleryVerticalEnd,
+  map: Map,
+  "pie-chart": PieChart,
+  settings2: Settings2,
+  terminal: Terminal,
+  folder: Folder,
+  forward: Forward,
+  "chevrons-up-down": ChevronsUpDown,
+  "badge-check": BadgeCheck,
+  "log-out": LogOut,
+  sparkles: Sparkles,
   // FontAwesome icons
   github: FaGithub,
   twitter: FaTwitter,

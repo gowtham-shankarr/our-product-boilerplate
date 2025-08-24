@@ -15,7 +15,14 @@
     "declarationMap": true,
     "jsx": "react-jsx",
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@/lib/utils": ["./src/lib/utils"],
+      "@/hooks/use-mobile": ["./src/hooks/use-mobile"],
+      "@/components/ui/*": ["./src/components/ui/*"],
+      "@/components/*": ["./src/components/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -1,5 +1,3 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import type {
   User,
   Permission,
@@ -10,239 +8,222 @@ import type {
 import { hasPermission, hasPermissions, hasRole } from "./permissions";
 
 /**
- * Route protection for Next.js pages
+ * Check if user has access to a route
  */
-export function withAuth(
-  handler: (
-    req: NextRequest,
-    user: User
-  ) => Promise<NextResponse> | NextResponse,
+export function checkRouteAccess(
+  user: User | null,
   options: RouteGuardOptions = {}
-) {
-  return async (req: NextRequest): Promise<NextResponse> => {
-    try {
-      // Get user from session (this would be implemented with NextAuth)
-      const user = await getCurrentUser(req);
+): { hasAccess: boolean; reason?: string; missingPermissions?: Permission[] } {
+  const { requiredPermissions, requiredRole } = options;
 
-      if (!user && options.requireAuth !== false) {
-        const redirectUrl = options.redirectTo || "/auth/login";
-        return NextResponse.redirect(new URL(redirectUrl, req.url));
-      }
+  if (!user) {
+    return { hasAccess: false, reason: "not_authenticated" };
+  }
 
-      // Check role requirements
-      if (
-        options.requiredRole &&
-        user &&
-        !hasRole(user, options.requiredRole)
-      ) {
-        return NextResponse.redirect(new URL("/unauthorized", req.url));
-      }
+  // Check role requirement
+  if (requiredRole && !hasRole(user, requiredRole)) {
+    return { hasAccess: false, reason: "insufficient_role" };
+  }
 
-      // Check permission requirements
-      if (options.requiredPermissions && user) {
-        const permissionCheck = hasPermissions(
-          user,
-          options.requiredPermissions
-        );
-        if (!permissionCheck.hasPermission) {
-          return NextResponse.redirect(new URL("/unauthorized", req.url));
-        }
-      }
-
-      return handler(req, user!);
-    } catch (error) {
-      console.error("Auth guard error:", error);
-      return NextResponse.redirect(new URL("/auth/login", req.url));
+  // Check permission requirements
+  if (requiredPermissions && requiredPermissions.length > 0) {
+    const permissionCheck = hasPermissions(user, requiredPermissions);
+    if (!permissionCheck.hasPermission) {
+      return {
+        hasAccess: false,
+        reason: "insufficient_permissions",
+        missingPermissions: permissionCheck.missingPermissions,
+      };
     }
-  };
+  }
+
+  return { hasAccess: true };
 }
 
 /**
- * API route protection
+ * Higher-order function for API route protection
  */
-export function withApiAuth(
-  handler: (
-    req: NextRequest,
-    user: User
-  ) => Promise<NextResponse> | NextResponse,
-  options: ApiGuardOptions = {}
-) {
-  return async (req: NextRequest): Promise<NextResponse> => {
-    try {
-      // Get user from session
-      const user = await getCurrentUser(req);
+export function withApiAuth(handler: Function, options: ApiGuardOptions = {}) {
+  return async function ProtectedApiHandler(req: any, res: any) {
+    const {
+      requiredPermissions,
+      requiredRole,
+      allowUnauthenticated = false,
+    } = options;
 
-      if (!user && options.requireAuth !== false) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    // TODO: Replace with real auth integration
+    // Example:
+    // const session = await getServerSession(req, res, authOptions);
+    // const user = session?.user as User | null;
+    // const isAuthenticated = !!session;
 
-      // Check role requirements
-      if (
-        options.requiredRole &&
-        user &&
-        !hasRole(user, options.requiredRole)
-      ) {
-        return NextResponse.json(
-          { error: "Insufficient permissions" },
-          { status: 403 }
-        );
-      }
+    // For now, this is a placeholder that developers need to implement
+    const user: User | null = null;
+    const isAuthenticated = false;
 
-      // Check permission requirements
-      if (options.requiredPermissions && user) {
-        const permissionCheck = hasPermissions(
-          user,
-          options.requiredPermissions
-        );
-        if (!permissionCheck.hasPermission) {
-          return NextResponse.json(
-            {
-              error: "Insufficient permissions",
-              missingPermissions: permissionCheck.missingPermissions,
-            },
-            { status: 403 }
-          );
-        }
-      }
-
-      return handler(req, user!);
-    } catch (error) {
-      console.error("API auth guard error:", error);
-      if (options.onUnauthorized) {
-        options.onUnauthorized(error as Error);
-      }
-      return NextResponse.json(
-        { error: "Authentication failed" },
-        { status: 401 }
-      );
+    if (!isAuthenticated && !allowUnauthenticated) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
+
+    if (!user && !allowUnauthenticated) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    // Check role requirement
+    if (user && requiredRole && !hasRole(user, requiredRole)) {
+      return res.status(403).json({ error: "Insufficient role" });
+    }
+
+    // Check permission requirements
+    if (user && requiredPermissions && requiredPermissions.length > 0) {
+      const permissionCheck = hasPermissions(user, requiredPermissions);
+      if (!permissionCheck.hasPermission) {
+        return res.status(403).json({
+          error: "Insufficient permissions",
+          missingPermissions: permissionCheck.missingPermissions,
+        });
+      }
+    }
+
+    // Call the original handler
+    return handler(req, res);
   };
 }
 
 /**
- * Server Action protection
+ * Higher-order function for server action protection
  */
 export function withServerActionAuth(
-  action: (formData: FormData, user: User) => Promise<any>,
+  action: Function,
   options: ApiGuardOptions = {}
 ) {
-  return async (formData: FormData): Promise<any> => {
-    try {
-      // Get user from session (server-side)
-      const user = await getServerSession();
+  return async function ProtectedServerAction(...args: any[]) {
+    const {
+      requiredPermissions,
+      requiredRole,
+      allowUnauthenticated = false,
+    } = options;
 
-      if (!user && options.requireAuth !== false) {
-        throw new Error("Unauthorized");
-      }
+    // TODO: Replace with real auth integration
+    // Example:
+    // const session = await getServerSession(authOptions);
+    // const user = session?.user as User | null;
+    // const isAuthenticated = !!session;
 
-      // Check role requirements
-      if (
-        options.requiredRole &&
-        user &&
-        !hasRole(user, options.requiredRole)
-      ) {
+    // For now, this is a placeholder that developers need to implement
+    const user: User | null = null;
+    const isAuthenticated = false;
+
+    if (!isAuthenticated && !allowUnauthenticated) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!user && !allowUnauthenticated) {
+      throw new Error("User not found");
+    }
+
+    // Check role requirement
+    if (user && requiredRole && !hasRole(user, requiredRole)) {
+      throw new Error("Insufficient role");
+    }
+
+    // Check permission requirements
+    if (user && requiredPermissions && requiredPermissions.length > 0) {
+      const permissionCheck = hasPermissions(user, requiredPermissions);
+      if (!permissionCheck.hasPermission) {
         throw new Error("Insufficient permissions");
       }
-
-      // Check permission requirements
-      if (options.requiredPermissions && user) {
-        const permissionCheck = hasPermissions(
-          user,
-          options.requiredPermissions
-        );
-        if (!permissionCheck.hasPermission) {
-          throw new Error("Insufficient permissions");
-        }
-      }
-
-      return action(formData, user!);
-    } catch (error) {
-      console.error("Server action auth error:", error);
-      throw error;
     }
+
+    // Call the original action
+    return action(...args);
   };
 }
 
 /**
- * Permission-based component guard
+ * Check if user has a specific permission
  */
 export function withPermission(
-  Component: any,
-  requiredPermissions: Permission[],
-  fallback?: any
-) {
-  return function PermissionGuard(props: any) {
-    // This would be used with useAuth hook in client components
-    // For now, return the component - the actual check would be done in the component
-    return Component(props);
-  };
+  user: User | null,
+  permission: Permission
+): boolean {
+  if (!user) return false;
+  return hasPermission(user, permission);
 }
 
 /**
- * Role-based component guard
+ * Check if user has a specific role
  */
-export function withRole(
-  Component: any,
-  requiredRole: UserRole,
-  fallback?: any
-) {
-  return function RoleGuard(props: any) {
-    // This would be used with useAuth hook in client components
-    // For now, return the component - the actual check would be done in the component
-    return Component(props);
-  };
+export function withRole(user: User | null, role: UserRole): boolean {
+  if (!user) return false;
+  return hasRole(user, role);
 }
 
 /**
- * Create a middleware for route protection
+ * Create auth middleware for Next.js
  */
 export function createAuthMiddleware(options: RouteGuardOptions = {}) {
-  return function authMiddleware(req: NextRequest): NextResponse | null {
-    // This would be used in Next.js middleware
-    // For now, return null to allow the request to continue
-    return null;
+  return function authMiddleware(req: any, res: any, next: Function) {
+    const { requiredPermissions, requiredRole } = options;
+
+    // TODO: Replace with real auth integration
+    // Example:
+    // const session = await getServerSession(req, res, authOptions);
+    // const user = session?.user as User | null;
+    // const isAuthenticated = !!session;
+
+    // For now, this is a placeholder that developers need to implement
+    const user: User | null = null;
+    const isAuthenticated = false;
+
+    if (!isAuthenticated) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    // Check role requirement
+    if (requiredRole && !hasRole(user, requiredRole)) {
+      return res.status(403).json({ error: "Insufficient role" });
+    }
+
+    // Check permission requirements
+    if (requiredPermissions && requiredPermissions.length > 0) {
+      const permissionCheck = hasPermissions(user, requiredPermissions);
+      if (!permissionCheck.hasPermission) {
+        return res.status(403).json({
+          error: "Insufficient permissions",
+          missingPermissions: permissionCheck.missingPermissions,
+        });
+      }
+    }
+
+    // Add user to request object
+    (req as any).user = user;
+    next();
   };
 }
 
 /**
- * Check if a route requires authentication
+ * Check if a route is protected
  */
-export function isProtectedRoute(
-  pathname: string,
-  protectedRoutes: string[] = []
-): boolean {
+export function isProtectedRoute(pathname: string): boolean {
+  const protectedRoutes = ["/dashboard", "/profile", "/admin", "/settings"];
+
   return protectedRoutes.some((route) => pathname.startsWith(route));
 }
 
 /**
- * Get redirect URL based on auth state
+ * Get the appropriate redirect URL for auth
  */
 export function getAuthRedirectUrl(
-  isAuthenticated: boolean,
-  pathname: string,
-  loginPage: string = "/auth/login",
-  dashboardPage: string = "/dashboard"
-): string | null {
-  if (!isAuthenticated && pathname !== loginPage) {
-    return loginPage;
+  currentPath: string,
+  defaultRedirect: string = "/auth/signin"
+): string {
+  if (isProtectedRoute(currentPath)) {
+    return `${defaultRedirect}?callbackUrl=${encodeURIComponent(currentPath)}`;
   }
-
-  if (isAuthenticated && pathname === loginPage) {
-    return dashboardPage;
-  }
-
-  return null;
-}
-
-// Placeholder functions - these would be implemented with NextAuth
-async function getCurrentUser(req: NextRequest): Promise<User | null> {
-  // This would use NextAuth's getToken or similar
-  // For now, return null
-  return null;
-}
-
-async function getServerSession(): Promise<User | null> {
-  // This would use NextAuth's getServerSession
-  // For now, return null
-  return null;
+  return defaultRedirect;
 }

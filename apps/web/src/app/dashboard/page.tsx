@@ -1,3 +1,7 @@
+import { getServerSession } from "next-auth/next";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import { db } from "@acmecorp/db";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
@@ -12,8 +16,52 @@ import {
   SidebarTrigger,
 } from "@acmecorp/ui";
 import { Icon } from "@acmecorp/icons";
+import { UserInfo } from "../../components/user-info";
 
-export default function Page() {
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/auth/signin");
+  }
+
+  // Fetch user's organization - use email as fallback if ID is not available
+  let userWithOrg;
+
+  if (session.user?.id) {
+    userWithOrg = await db.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        memberships: {
+          include: {
+            organization: true,
+          },
+        },
+      },
+    });
+  } else if (session.user?.email) {
+    userWithOrg = await db.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        memberships: {
+          include: {
+            organization: true,
+          },
+        },
+      },
+    });
+  } else {
+    console.error("No user ID or email in session");
+    redirect("/auth/signin");
+  }
+
+  if (!userWithOrg) {
+    console.error("User not found in database");
+    redirect("/auth/signin");
+  }
+
+  const organization = userWithOrg?.memberships[0]?.organization;
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -40,9 +88,51 @@ export default function Page() {
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back! Here's what's happening with your projects today.
+              Welcome back, {session.user?.name || session.user?.email}! Here's
+              what's happening with your projects today.
             </p>
           </div>
+
+          {/* User Info Card */}
+          <div className="rounded-xl border bg-card p-6">
+            <h3 className="text-lg font-semibold mb-4">Your Account</h3>
+            <UserInfo user={session.user} />
+          </div>
+
+          {/* Organization Info Card */}
+          {organization && (
+            <div className="rounded-xl border bg-card p-6">
+              <h3 className="text-lg font-semibold mb-4">Your Organization</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Name:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {organization.name}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Slug:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {organization.slug}
+                  </span>
+                </div>
+                {organization.description && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Description:</span>
+                    <span className="text-sm text-muted-foreground">
+                      {organization.description}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Your Role:</span>
+                  <span className="text-sm text-muted-foreground capitalize">
+                    {userWithOrg?.memberships[0]?.role || "member"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

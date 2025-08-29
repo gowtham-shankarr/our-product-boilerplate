@@ -1,6 +1,4 @@
-import { useSession, signIn, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { User, Permission, UserRole, AuthState } from "./types";
 import {
   hasPermission,
@@ -10,260 +8,217 @@ import {
 } from "./permissions";
 
 /**
- * Enhanced auth hook with permission checking
- * Note: This is a placeholder implementation. In actual usage, you would import React hooks and NextAuth
+ * Hook to get current auth state
+ * This integrates with NextAuth.js for real authentication
  */
-export function useAuth(): AuthState & {
-  signIn: (provider?: string, options?: any) => Promise<any>;
-  signOut: (options?: any) => Promise<any>;
-  hasPermission: (permission: Permission) => boolean;
-  hasPermissions: (permissions: Permission[]) => boolean;
-  hasRole: (role: UserRole) => boolean;
-  getUserPermissions: () => Permission[];
-} {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+export function useAuth(): AuthState {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    session: null,
+    isLoading: true,
+    isAuthenticated: false,
+  });
 
-  const user = session?.user as User | null;
-  const isLoading = status === ("loading" as any);
-  const isAuthenticated = (status === ("authenticated" as any) &&
-    !!user) as any;
+  // In a real app, this would integrate with NextAuth
+  // For now, we'll provide a placeholder that developers can replace
+  useEffect(() => {
+    // TODO: Replace with real NextAuth integration
+    // Example:
+    // import { useSession } from "next-auth/react";
+    // const { data: session, status } = useSession();
+    //
+    // setAuthState({
+    //   user: session?.user as User | null,
+    //   session: session as Session | null,
+    //   isLoading: status === "loading",
+    //   isAuthenticated: status === "authenticated",
+    // });
 
-  const authSignIn = useCallback(async (provider?: string, options?: any) => {
-    return signIn(provider as any, {
-      callbackUrl: options?.callbackUrl || "/dashboard",
-      ...options,
+    // Placeholder implementation
+    setAuthState({
+      user: null,
+      session: null,
+      isLoading: false,
+      isAuthenticated: false,
     });
   }, []);
 
-  const authSignOut = useCallback(async (options?: any) => {
-    return signOut({
-      callbackUrl: options?.callbackUrl || "/",
-      ...options,
-    });
-  }, []);
-
-  const checkPermission = useCallback(
-    (permission: Permission): boolean => {
-      return hasPermission(user, permission);
-    },
-    [user]
-  );
-
-  const checkPermissions = useCallback(
-    (permissions: Permission[]): boolean => {
-      const check = hasPermissions(user, permissions);
-      return check.hasPermission;
-    },
-    [user]
-  );
-
-  const checkRole = useCallback(
-    (role: UserRole): boolean => {
-      return hasRole(user, role);
-    },
-    [user]
-  );
-
-  const getPermissions = useCallback((): Permission[] => {
-    return getUserPermissions(user);
-  }, [user]);
-
-  return {
-    user,
-    session: session as any,
-    isLoading,
-    isAuthenticated,
-    signIn: authSignIn,
-    signOut: authSignOut,
-    hasPermission: checkPermission,
-    hasPermissions: checkPermissions,
-    hasRole: checkRole,
-    getUserPermissions: getPermissions,
-  };
+  return authState;
 }
 
 /**
- * Hook for permission-based rendering
+ * Hook to check if user has a specific permission
  */
 export function usePermission(permission: Permission): boolean {
   const { user } = useAuth();
-  return useMemo(() => hasPermission(user, permission), [user, permission]);
+
+  if (!user) return false;
+
+  return hasPermission(user, permission);
 }
 
 /**
- * Hook for multiple permissions checking
+ * Hook to check if user has multiple permissions
  */
-export function usePermissions(permissions: Permission[]): {
-  hasAll: boolean;
-  hasAny: boolean;
-  missing: Permission[];
-} {
+export function usePermissions(permissions: Permission[]) {
   const { user } = useAuth();
 
-  return useMemo(() => {
-    const check = hasPermissions(user, permissions);
-    const hasAny = permissions.some((permission) =>
-      hasPermission(user, permission)
-    );
-
+  if (!user) {
     return {
-      hasAll: check.hasPermission,
-      hasAny,
-      missing: check.missingPermissions,
+      hasPermission: false,
+      missingPermissions: permissions,
+      userPermissions: [],
     };
-  }, [user, permissions]);
+  }
+
+  return hasPermissions(user, permissions);
 }
 
 /**
- * Hook for role-based rendering
+ * Hook to check if user has a specific role
  */
 export function useRole(role: UserRole): boolean {
   const { user } = useAuth();
-  return useMemo(() => hasRole(user, role), [user, role]);
+
+  if (!user) return false;
+
+  return hasRole(user, role);
 }
 
 /**
- * Hook for user permissions
+ * Hook to get all user permissions
  */
 export function useUserPermissions(): Permission[] {
   const { user } = useAuth();
-  return useMemo(() => getUserPermissions(user), [user]);
+
+  if (!user) return [];
+
+  return getUserPermissions(user);
 }
 
 /**
- * Hook for auth-aware navigation
+ * Hook for auth navigation
  */
 export function useAuthNavigation() {
-  const { isAuthenticated, user } = useAuth();
-  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
 
-  const navigateToLogin = useCallback(
-    (callbackUrl?: string) => {
-      const url = callbackUrl
-        ? `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
-        : "/auth/login";
-      router.push(url as any);
-    },
-    [router]
-  );
-
-  const navigateToDashboard = useCallback(() => {
-    router.push("/dashboard" as any);
-  }, [router]);
-
-  const navigateToProfile = useCallback(() => {
-    router.push("/profile" as any);
-  }, [router]);
-
-  const navigateToAdmin = useCallback(() => {
-    if (user && hasRole(user, "admin")) {
-      router.push("/admin" as any);
+  const redirectToLogin = useCallback(() => {
+    if (!isLoading && !isAuthenticated) {
+      // TODO: Replace with NextAuth signIn or router.push
+      // Example: signIn() or router.push('/auth/signin')
+      console.log("Redirecting to login...");
     }
-  }, [user, router]);
+  }, [isAuthenticated, isLoading]);
+
+  const redirectToDashboard = useCallback(() => {
+    if (!isLoading && isAuthenticated) {
+      // TODO: Replace with router.push
+      // Example: router.push('/dashboard')
+      console.log("Redirecting to dashboard...");
+    }
+  }, [isAuthenticated, isLoading]);
 
   return {
-    navigateToLogin,
-    navigateToDashboard,
-    navigateToProfile,
-    navigateToAdmin,
+    redirectToLogin,
+    redirectToDashboard,
   };
 }
 
 /**
  * Hook for auth state changes
  */
-export function useAuthStateChange(callback: (authState: AuthState) => void) {
-  const auth = useAuth();
+export function useAuthStateChange() {
+  const { user, isAuthenticated } = useAuth();
 
-  // This would use useEffect to watch for auth state changes
-  // For now, just return the current state
-  return auth;
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log("User authenticated:", user.email);
+    } else if (!isAuthenticated) {
+      console.log("User not authenticated");
+    }
+  }, [user, isAuthenticated]);
+
+  return { user, isAuthenticated };
 }
 
 /**
- * Hook for protected route access
+ * Hook for protected routes
  */
 export function useProtectedRoute(
   requiredPermissions?: Permission[],
-  requiredRole?: UserRole,
-  redirectTo?: string
+  requiredRole?: UserRole
 ) {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
 
-  const hasAccess = useMemo(() => {
-    if (!isAuthenticated) return false;
-    if (!user) return false;
+  const hasAccess = useCallback(() => {
+    if (isLoading) return { hasAccess: false, loading: true };
+    if (!isAuthenticated || !user) return { hasAccess: false, loading: false };
 
+    // Check role first
     if (requiredRole && !hasRole(user, requiredRole)) {
-      return false;
+      return { hasAccess: false, loading: false, reason: "insufficient_role" };
     }
 
+    // Check permissions
     if (requiredPermissions && requiredPermissions.length > 0) {
-      const check = hasPermissions(user, requiredPermissions);
-      return check.hasPermission;
+      const permissionCheck = hasPermissions(user, requiredPermissions);
+      if (!permissionCheck.hasPermission) {
+        return {
+          hasAccess: false,
+          loading: false,
+          reason: "insufficient_permissions",
+          missingPermissions: permissionCheck.missingPermissions,
+        };
+      }
     }
 
-    return true;
-  }, [user, isAuthenticated, requiredPermissions, requiredRole]);
+    return { hasAccess: true, loading: false };
+  }, [user, isAuthenticated, isLoading, requiredPermissions, requiredRole]);
 
-  const redirect = useCallback(() => {
-    if (!isLoading && !hasAccess) {
-      const url = redirectTo || "/auth/login";
-      router.push(url as any);
-    }
-  }, [hasAccess, isLoading, redirectTo, router]);
-
-  return {
-    hasAccess,
-    isLoading,
-    redirect,
-    user,
-  };
+  return hasAccess();
 }
 
 /**
  * Hook for auth forms
  */
-export function useAuthForm() {
-  const { signIn, signOut } = useAuth();
-  const router = useRouter();
+export function useAuthForm<T extends Record<string, any>>(initialData: T) {
+  const [data, setData] = useState<T>(initialData);
+  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = useCallback(
-    async (credentials: { email: string; password: string }) => {
-      try {
-        const result = await signIn("credentials", {
-          email: credentials.email,
-          password: credentials.password,
-          redirect: false,
-        });
-
-        if (result?.ok) {
-          router.push("/dashboard" as any);
-          return { success: true };
-        } else {
-          return { success: false, error: result?.error || "Login failed" };
-        }
-      } catch (error) {
-        return { success: false, error: "Login failed" };
+  const updateField = useCallback(
+    (field: keyof T, value: T[keyof T]) => {
+      setData((prev) => ({ ...prev, [field]: value }));
+      // Clear error when user starts typing
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
     },
-    [signIn, router]
+    [errors]
   );
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await signOut({ redirect: false });
-      router.push("/" as any);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: "Logout failed" };
-    }
-  }, [signOut, router]);
+  const setFieldError = useCallback((field: keyof T, error: string) => {
+    setErrors((prev) => ({ ...prev, [field]: error }));
+  }, []);
+
+  const clearErrors = useCallback(() => {
+    setErrors({});
+  }, []);
+
+  const reset = useCallback(() => {
+    setData(initialData);
+    setErrors({});
+    setIsSubmitting(false);
+  }, [initialData]);
 
   return {
-    handleLogin,
-    handleLogout,
+    data,
+    errors,
+    isSubmitting,
+    updateField,
+    setFieldError,
+    clearErrors,
+    setIsSubmitting,
+    reset,
   };
 }

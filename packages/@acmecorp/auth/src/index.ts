@@ -24,20 +24,24 @@ export {
   SessionSchema,
   LoginSchema,
   RegisterSchema,
+  PasswordResetRequestSchema,
   PasswordResetSchema,
   PasswordChangeSchema,
   ProfileUpdateSchema,
   RoleAssignmentSchema,
   PermissionCheckSchema,
   AuthStateSchema,
+  EmailVerificationSchema,
   // Inferred types
   type LoginForm,
   type RegisterForm,
+  type PasswordResetRequestForm,
   type PasswordResetForm,
   type PasswordChangeForm,
   type ProfileUpdateForm,
   type RoleAssignmentForm,
   type PermissionCheckForm,
+  type EmailVerificationForm,
 } from "./schemas";
 
 // Permission system
@@ -62,7 +66,7 @@ export {
 
 // Route and API protection
 export {
-  withAuth,
+  checkRouteAccess,
   withApiAuth,
   withServerActionAuth,
   withPermission,

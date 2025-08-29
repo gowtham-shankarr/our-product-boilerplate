@@ -23,21 +23,35 @@ export const defaultAuthConfig: NextAuthOptions = {
         }
 
         try {
-          // This would integrate with your database
-          // For now, return a mock user
-          const user: User = {
-            id: "1",
-            email: credentials.email,
-            name: "Test User",
-            role: "user",
-            permissions: ["users:read", "orgs:read", "projects:read"],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
+          // TODO: Replace with real database integration
+          // Example:
+          // import { db } from "@acmecorp/db";
+          // import { compare } from "bcryptjs";
+          //
+          // const user = await db.user.findUnique({
+          //   where: { email: credentials.email },
+          //   include: { accounts: true }
+          // });
+          //
+          // if (!user || !user.password) return null;
+          //
+          // const isValid = await compare(credentials.password, user.password);
+          // if (!isValid) return null;
+          //
+          // return {
+          //   id: user.id,
+          //   email: user.email,
+          //   name: user.name,
+          //   role: user.role,
+          //   permissions: user.permissions,
+          //   image: user.image,
+          // };
 
-          // Validate user with Zod
-          const validatedUser = UserSchema.parse(user);
-          return validatedUser;
+          // Placeholder - replace with real implementation
+          console.log(
+            "Credentials auth not implemented - replace with database integration"
+          );
+          return null;
         } catch (error) {
           console.error("Auth error:", error);
           return null;
@@ -53,8 +67,8 @@ export const defaultAuthConfig: NextAuthOptions = {
 
     // GitHub OAuth provider
     GitHubProvider({
-      clientId: process.env.GITHUB_ID || "",
-      clientSecret: process.env.GITHUB_SECRET || "",
+      clientId: process.env.GITHUB_CLIENT_ID || "",
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
     }),
   ],
 
@@ -92,7 +106,7 @@ export const defaultAuthConfig: NextAuthOptions = {
         (session as any).accessToken = token.accessToken as string;
       }
 
-      return session as Session;
+      return session as any;
     },
 
     async redirect({ url, baseUrl }) {
@@ -105,8 +119,8 @@ export const defaultAuthConfig: NextAuthOptions = {
   },
 
   pages: {
-    signIn: "/auth/login",
-    signOut: "/auth/logout",
+    signIn: "/auth/signin",
+    signOut: "/auth/signout",
     error: "/auth/error",
     verifyRequest: "/auth/verify-request",
     newUser: "/auth/new-user",
@@ -114,15 +128,15 @@ export const defaultAuthConfig: NextAuthOptions = {
 
   events: {
     async signIn({ user, account, profile, isNewUser }) {
-      // Log successful sign in
+      // TODO: Implement sign in logging or user creation
       console.log("User signed in:", user.email);
     },
     async signOut({ session, token }) {
-      // Log sign out
+      // TODO: Implement sign out logging
       console.log("User signed out");
     },
     async createUser({ user }) {
-      // Log new user creation
+      // TODO: Implement new user creation logic
       console.log("New user created:", user.email);
     },
   },
@@ -135,8 +149,8 @@ export const defaultAuthConfig: NextAuthOptions = {
  */
 async function refreshAccessToken(token: any) {
   try {
-    // This would implement token refresh logic
-    // For now, return the token as is
+    // TODO: Implement token refresh logic
+    // This would depend on your OAuth provider
     return token;
   } catch (error) {
     console.error("Error refreshing access token:", error);
@@ -170,8 +184,16 @@ export function createAuthConfig(
  * Server-side session helpers
  */
 export async function getServerSession(): Promise<Session | null> {
-  // This would use NextAuth's getServerSession
-  // For now, return null
+  // TODO: Replace with NextAuth's getServerSession
+  // Example:
+  // import { getServerSession as nextAuthGetServerSession } from "next-auth";
+  // import { authOptions } from "./auth-options";
+  //
+  // return await nextAuthGetServerSession(authOptions);
+
+  console.log(
+    "getServerSession not implemented - replace with NextAuth integration"
+  );
   return null;
 }
 
@@ -192,8 +214,12 @@ export async function getCurrentUser(): Promise<User | null> {
  * Client-side session helpers
  */
 export function useSession() {
-  // This would use NextAuth's useSession
-  // For now, return a mock session
+  // TODO: Replace with NextAuth's useSession
+  // Example:
+  // import { useSession as nextAuthUseSession } from "next-auth/react";
+  // return nextAuthUseSession();
+
+  console.log("useSession not implemented - replace with NextAuth integration");
   return {
     data: null,
     status: "unauthenticated" as const,

@@ -33,7 +33,7 @@
     "typescript": "^5.3.0"
   },
   "scripts": {
-    "build": "tsup && prisma generate",
+    "build": "prisma generate && tsup",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",

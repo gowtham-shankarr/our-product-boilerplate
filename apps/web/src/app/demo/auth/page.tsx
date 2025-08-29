@@ -7,6 +7,7 @@ import {
   usePermission,
   usePermissions,
   useRole,
+  useUserPermissions,
   hasPermission,
   hasPermissions,
   hasRole,
@@ -18,76 +19,31 @@ import {
   type UserRole,
 } from "@acmecorp/auth";
 
-// Mock user data for demo
-const mockUsers: User[] = [
-  {
-    id: "1",
-    email: "admin@example.com",
-    name: "Admin User",
-    role: "admin",
-    permissions: ["users:read", "users:write", "users:delete"] as Permission[],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    email: "user@example.com",
-    name: "Regular User",
-    role: "user",
-    permissions: ["users:read", "orgs:read"] as Permission[],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    email: "guest@example.com",
-    name: "Guest User",
-    role: "guest",
-    permissions: [] as Permission[],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
 export default function AuthDemoPage() {
-  const [selectedUser, setSelectedUser] = useState(mockUsers[0]);
-  const [testPermission, setTestPermission] = useState("users:read");
+  const [testPermission, setTestPermission] = useState("users_read");
   const [testRole, setTestRole] = useState("user");
 
-  // For demo purposes, we'll use the selected user as the "current user"
-  // In a real app, this would come from NextAuth useAuth()
-  const currentUser = selectedUser;
-  const isLoading = false;
-  const isAuthenticated = true;
-
-  // Permission checking for the current user
-  const userHasPermission = (permission: Permission) =>
-    hasPermission(currentUser, permission);
-  const canReadUsers = userHasPermission("users:read");
-
-  // Use direct permission functions instead of hooks for demo
-  const permissionsCheck = hasPermissions(currentUser, [
-    "users:read",
-    "users:write",
-  ]);
-  const hasAll = permissionsCheck.hasPermission;
-  const hasAny = ["users:read", "users:write"].some((permission) =>
-    hasPermission(currentUser, permission as Permission)
-  );
-  const missing = permissionsCheck.missingPermissions;
-  const isAdmin = hasRole(currentUser, "admin");
+  // Use real auth hooks
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const canReadUsers = usePermission("users_read");
+  const permissionsCheck = usePermissions(["users_read", "users_write"]);
+  const isAdmin = useRole("admin");
+  const userPermissions = useUserPermissions();
 
   // Permission checking functions
   const checkPermission = () => {
-    return hasPermission(selectedUser, testPermission as any);
+    if (!user) return false;
+    return hasPermission(user, testPermission as any);
   };
 
   const checkRole = () => {
-    return hasRole(selectedUser, testRole as any);
+    if (!user) return false;
+    return hasRole(user, testRole as any);
   };
 
   const getUserPerms = () => {
-    return getUserPermissions(selectedUser);
+    if (!user) return [];
+    return getUserPermissions(user);
   };
 
   return (
@@ -95,52 +51,64 @@ export default function AuthDemoPage() {
       <h1 className="text-3xl font-bold mb-8">Auth Package Demo</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* User Selection */}
+        {/* Auth Status */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">User Selection</h2>
-          <div className="space-y-2">
-            {mockUsers.map((user) => (
-              <Button
-                key={user.id}
-                variant={selectedUser.id === user.id ? "default" : "outline"}
-                onClick={() => setSelectedUser(user)}
-                className="w-full justify-start"
-              >
-                <div className="text-left">
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {user.email} ({user.role})
-                  </div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Current User Info */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Current User</h2>
+          <h2 className="text-xl font-semibold">Authentication Status</h2>
           <div className="p-4 border rounded-lg">
             <div className="space-y-2">
               <div>
-                <strong>Name:</strong> {selectedUser.name}
+                <strong>Loading:</strong> {isLoading ? "Yes" : "No"}
               </div>
               <div>
-                <strong>Email:</strong> {selectedUser.email}
+                <strong>Authenticated:</strong> {isAuthenticated ? "Yes" : "No"}
               </div>
               <div>
-                <strong>Role:</strong> {selectedUser.role}
+                <strong>User:</strong> {user ? user.name || user.email : "None"}
               </div>
-              <div>
-                <strong>Permissions:</strong>
+              {user && (
+                <>
+                  <div>
+                    <strong>Role:</strong> {user.role}
+                  </div>
+                  <div>
+                    <strong>Permissions:</strong>
+                  </div>
+                  <ul className="list-disc list-inside ml-4">
+                    {user.permissions.map((perm) => (
+                      <li key={perm} className="text-sm">
+                        {perm}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Integration Instructions */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Integration Status</h2>
+          <div className="p-4 border rounded-lg">
+            <div className="space-y-2">
+              <div className="text-sm">
+                <strong>NextAuth Integration:</strong>
+                <div className="mt-1 p-2 bg-yellow-50 border rounded text-xs">
+                  ⚠️ Not implemented - Replace placeholders in auth package
+                </div>
               </div>
-              <ul className="list-disc list-inside ml-4">
-                {selectedUser.permissions.map((perm) => (
-                  <li key={perm} className="text-sm">
-                    {perm}
-                  </li>
-                ))}
-              </ul>
+              <div className="text-sm">
+                <strong>Database Integration:</strong>
+                <div className="mt-1 p-2 bg-yellow-50 border rounded text-xs">
+                  ⚠️ Not implemented - Add database queries
+                </div>
+              </div>
+              <div className="text-sm">
+                <strong>Environment Setup:</strong>
+                <div className="mt-1 p-2 bg-yellow-50 border rounded text-xs">
+                  ⚠️ Create .env file with DATABASE_URL and NEXTAUTH_SECRET
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -164,12 +132,12 @@ export default function AuthDemoPage() {
                   onChange={(e) => setTestPermission(e.target.value)}
                   className="w-full p-2 border rounded"
                 >
-                  <option value="users:read">users:read</option>
-                  <option value="users:write">users:write</option>
-                  <option value="users:delete">users:delete</option>
-                  <option value="orgs:read">orgs:read</option>
-                  <option value="orgs:write">orgs:write</option>
-                  <option value="projects:read">projects:read</option>
+                  <option value="users_read">users_read</option>
+                  <option value="users_write">users_write</option>
+                  <option value="users_delete">users_delete</option>
+                  <option value="orgs_read">orgs_read</option>
+                  <option value="orgs_write">orgs_write</option>
+                  <option value="projects_read">projects_read</option>
                 </select>
               </div>
               <div className="p-3 bg-muted rounded">
@@ -212,14 +180,18 @@ export default function AuthDemoPage() {
           </h3>
           <div className="p-3 bg-muted rounded">
             <div className="text-sm">
-              {getUserPerms().map((perm) => (
-                <span
-                  key={perm}
-                  className="inline-block bg-primary text-primary-foreground px-2 py-1 rounded mr-2 mb-2"
-                >
-                  {perm}
-                </span>
-              ))}
+              {user ? (
+                getUserPerms().map((perm) => (
+                  <span
+                    key={perm}
+                    className="inline-block bg-primary text-primary-foreground px-2 py-1 rounded mr-2 mb-2"
+                  >
+                    {perm}
+                  </span>
+                ))
+              ) : (
+                <span className="text-muted-foreground">No user logged in</span>
+              )}
             </div>
           </div>
         </div>
@@ -255,7 +227,7 @@ export default function AuthDemoPage() {
         <h2 className="text-xl font-semibold">React Hook Examples</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 border rounded-lg">
-            <h3 className="font-medium mb-2">usePermission('users:read')</h3>
+            <h3 className="font-medium mb-2">usePermission('users_read')</h3>
             <div className="p-2 bg-muted rounded">
               Result: {canReadUsers ? "✅ True" : "❌ False"}
             </div>
@@ -270,13 +242,15 @@ export default function AuthDemoPage() {
 
           <div className="p-4 border rounded-lg">
             <h3 className="font-medium mb-2">
-              usePermissions(['users:read', 'users:write'])
+              usePermissions(['users_read', 'users_write'])
             </h3>
             <div className="p-2 bg-muted rounded text-sm">
-              <div>Has All: {hasAll ? "✅" : "❌"}</div>
-              <div>Has Any: {hasAny ? "✅" : "❌"}</div>
+              <div>Has All: {permissionsCheck.hasPermission ? "✅" : "❌"}</div>
               <div>
-                Missing: {missing.length > 0 ? missing.join(", ") : "None"}
+                Missing:{" "}
+                {permissionsCheck.missingPermissions.length > 0
+                  ? permissionsCheck.missingPermissions.join(", ")
+                  : "None"}
               </div>
             </div>
           </div>
@@ -286,34 +260,84 @@ export default function AuthDemoPage() {
             <div className="p-2 bg-muted rounded text-sm">
               <div>Loading: {isLoading ? "Yes" : "No"}</div>
               <div>Authenticated: {isAuthenticated ? "Yes" : "No"}</div>
-              <div>User: {currentUser ? currentUser.name : "None"}</div>
+              <div>User: {user ? user.name || user.email : "None"}</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Usage Examples */}
+      {/* Setup Instructions */}
       <div className="mt-8 space-y-4">
-        <h2 className="text-xl font-semibold">Usage Examples</h2>
+        <h2 className="text-xl font-semibold">Setup Instructions</h2>
         <div className="space-y-4">
           <div className="p-4 border rounded-lg">
-            <h3 className="font-medium mb-2">Conditional Rendering</h3>
-            <div className="bg-muted p-3 rounded text-sm font-mono">
-              {`{hasPermission('users:write') && <button>Edit Users</button>}`}
+            <h3 className="font-medium mb-2">1. Environment Setup</h3>
+            <div className="text-sm space-y-2">
+              <p>
+                Create a <code className="bg-muted px-1 rounded">.env</code>{" "}
+                file with:
+              </p>
+              <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
+                {`DATABASE_URL="postgresql://username:password@localhost:5432/your_database"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key"
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"`}
+              </pre>
             </div>
           </div>
 
           <div className="p-4 border rounded-lg">
-            <h3 className="font-medium mb-2">Route Protection</h3>
-            <div className="bg-muted p-3 rounded text-sm font-mono">
-              {`const { hasAccess } = useProtectedRoute(['users:read'], 'user')`}
+            <h3 className="font-medium mb-2">2. Database Migration</h3>
+            <div className="text-sm space-y-2">
+              <p>Run database migrations:</p>
+              <pre className="bg-muted p-3 rounded text-xs">
+                {`cd packages/@acmecorp/db
+pnpm db:migrate`}
+              </pre>
             </div>
           </div>
 
           <div className="p-4 border rounded-lg">
-            <h3 className="font-medium mb-2">API Route Guard</h3>
-            <div className="bg-muted p-3 rounded text-sm font-mono">
-              {`export const GET = withApiAuth(handler, { requiredPermissions: ['users:read'] })`}
+            <h3 className="font-medium mb-2">3. NextAuth Integration</h3>
+            <div className="text-sm space-y-2">
+              <p>
+                Replace placeholders in auth package with real implementations:
+              </p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>
+                  Update <code className="bg-muted px-1 rounded">hooks.ts</code>{" "}
+                  with NextAuth useSession
+                </li>
+                <li>
+                  Update{" "}
+                  <code className="bg-muted px-1 rounded">nextauth.ts</code>{" "}
+                  with database queries
+                </li>
+                <li>
+                  Update{" "}
+                  <code className="bg-muted px-1 rounded">guards.ts</code> with
+                  getServerSession
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="p-4 border rounded-lg">
+            <h3 className="font-medium mb-2">4. Usage Examples</h3>
+            <div className="text-sm space-y-2">
+              <p>Conditional Rendering:</p>
+              <pre className="bg-muted p-3 rounded text-xs">
+                {`{hasPermission('users_write') && <button>Edit Users</button>}`}
+              </pre>
+              <p>Route Protection:</p>
+              <pre className="bg-muted p-3 rounded text-xs">
+                {`const { hasAccess } = useProtectedRoute(['users_read'], 'user')`}
+              </pre>
+              <p>API Route Guard:</p>
+              <pre className="bg-muted p-3 rounded text-xs">
+                {`export const GET = withApiAuth(handler, { requiredPermissions: ['users_read'] })`}
+              </pre>
             </div>
           </div>
         </div>

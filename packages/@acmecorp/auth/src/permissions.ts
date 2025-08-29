@@ -6,50 +6,38 @@ import type {
   RolePermissions,
 } from "./types";
 
-// Role hierarchy and permissions mapping
-export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  admin: [
-    "users:read",
-    "users:write",
-    "users:delete",
-    "orgs:read",
-    "orgs:write",
-    "orgs:delete",
-    "projects:read",
-    "projects:write",
-    "projects:delete",
-    "billing:read",
-    "billing:write",
-    "analytics:read",
-    "analytics:write",
-  ],
-  user: [
-    "users:read",
-    "users:write",
-    "orgs:read",
-    "orgs:write",
-    "projects:read",
-    "projects:write",
-    "billing:read",
-    "analytics:read",
-  ],
-  guest: ["users:read", "orgs:read", "projects:read"],
+// Role hierarchy - higher numbers have more permissions
+export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  guest: 0,
+  user: 1,
+  admin: 2,
 };
 
-// Role hierarchy (higher roles inherit lower role permissions)
-export const ROLE_HIERARCHY: Record<UserRole, number> = {
-  admin: 3,
-  user: 2,
-  guest: 1,
+// Default permissions for each role
+export const ROLE_PERMISSIONS: RolePermissions = {
+  guest: [],
+  user: ["users_read", "orgs_read", "projects_read"],
+  admin: [
+    "users_read",
+    "users_write",
+    "users_delete",
+    "orgs_read",
+    "orgs_write",
+    "orgs_delete",
+    "projects_read",
+    "projects_write",
+    "projects_delete",
+    "billing_read",
+    "billing_write",
+    "analytics_read",
+    "analytics_write",
+  ],
 };
 
 /**
  * Check if a user has a specific permission
  */
-export function hasPermission(
-  user: User | null,
-  permission: Permission
-): boolean {
+export function hasPermission(user: User, permission: Permission): boolean {
   if (!user) return false;
 
   // Check explicit permissions first
@@ -63,73 +51,74 @@ export function hasPermission(
 }
 
 /**
- * Check if a user has all required permissions
+ * Check if a user has all specified permissions
  */
 export function hasPermissions(
-  user: User | null,
+  user: User,
   permissions: Permission[]
 ): PermissionCheck {
   if (!user) {
     return {
       hasPermission: false,
       missingPermissions: permissions,
+      userPermissions: [],
     };
   }
 
+  const userPermissions = getUserPermissions(user);
   const missingPermissions = permissions.filter(
-    (permission) => !hasPermission(user, permission)
+    (permission) => !userPermissions.includes(permission)
   );
 
   return {
     hasPermission: missingPermissions.length === 0,
     missingPermissions,
+    userPermissions,
   };
 }
 
 /**
  * Check if a user has a specific role or higher
  */
-export function hasRole(user: User | null, requiredRole: UserRole): boolean {
+export function hasRole(user: User, requiredRole: UserRole): boolean {
   if (!user) return false;
 
-  const userRoleLevel = ROLE_HIERARCHY[user.role];
-  const requiredRoleLevel = ROLE_HIERARCHY[requiredRole];
+  const userLevel = ROLE_HIERARCHY[user.role];
+  const requiredLevel = ROLE_HIERARCHY[requiredRole];
 
-  return userRoleLevel >= requiredRoleLevel;
+  return userLevel >= requiredLevel;
 }
 
 /**
- * Get all permissions for a user (role + explicit permissions)
+ * Get all permissions for a user (role + explicit)
  */
-export function getUserPermissions(user: User | null): Permission[] {
+export function getUserPermissions(user: User): Permission[] {
   if (!user) return [];
 
   const rolePermissions = ROLE_PERMISSIONS[user.role];
   const explicitPermissions = user.permissions;
 
   // Combine and deduplicate
-  return [...new Set([...rolePermissions, ...explicitPermissions])];
+  const allPermissions = new Set([...rolePermissions, ...explicitPermissions]);
+  return Array.from(allPermissions);
 }
 
 /**
- * Get role permissions mapping
+ * Get permissions for a specific role
  */
-export function getRolePermissions(): RolePermissions[] {
-  return Object.entries(ROLE_PERMISSIONS).map(([role, permissions]) => ({
-    role: role as UserRole,
-    permissions,
-  }));
+export function getRolePermissions(role: UserRole): Permission[] {
+  return ROLE_PERMISSIONS[role];
 }
 
 /**
- * Check if a user can perform an action on a resource
+ * Check if a user can perform a specific action
  */
 export function canPerformAction(
-  user: User | null,
+  user: User,
   resource: string,
-  action: "read" | "write" | "delete"
+  action: string
 ): boolean {
-  const permission = `${resource}:${action}` as Permission;
+  const permission = `${resource}_${action}` as Permission;
   return hasPermission(user, permission);
 }
 
@@ -137,8 +126,8 @@ export function canPerformAction(
  * Create a permission guard function
  */
 export function createPermissionGuard(requiredPermissions: Permission[]) {
-  return (user: User | null): PermissionCheck => {
-    return hasPermissions(user, requiredPermissions);
+  return (user: User) => {
+    return hasPermissions(user, requiredPermissions).hasPermission;
   };
 }
 
@@ -146,7 +135,7 @@ export function createPermissionGuard(requiredPermissions: Permission[]) {
  * Create a role guard function
  */
 export function createRoleGuard(requiredRole: UserRole) {
-  return (user: User | null): boolean => {
+  return (user: User) => {
     return hasRole(user, requiredRole);
   };
 }
@@ -155,71 +144,88 @@ export function createRoleGuard(requiredRole: UserRole) {
  * Get missing permissions for a user
  */
 export function getMissingPermissions(
-  user: User | null,
+  user: User,
   requiredPermissions: Permission[]
 ): Permission[] {
-  const check = hasPermissions(user, requiredPermissions);
-  return check.missingPermissions;
+  const userPermissions = getUserPermissions(user);
+  return requiredPermissions.filter(
+    (permission) => !userPermissions.includes(permission)
+  );
 }
 
 /**
- * Check if user has any of the required permissions
+ * Check if user has any of the specified permissions
  */
 export function hasAnyPermission(
-  user: User | null,
+  user: User,
   permissions: Permission[]
 ): boolean {
   if (!user) return false;
 
-  return permissions.some((permission) => hasPermission(user, permission));
+  const userPermissions = getUserPermissions(user);
+  return permissions.some((permission) => userPermissions.includes(permission));
 }
 
 /**
- * Validate permission format (resource:action)
+ * Validate if a permission string is valid
  */
 export function isValidPermission(
   permission: string
 ): permission is Permission {
-  const validPermissions = Object.values(ROLE_PERMISSIONS).flat();
+  const validPermissions: Permission[] = [
+    "users_read",
+    "users_write",
+    "users_delete",
+    "orgs_read",
+    "orgs_write",
+    "orgs_delete",
+    "projects_read",
+    "projects_write",
+    "projects_delete",
+    "billing_read",
+    "billing_write",
+    "analytics_read",
+    "analytics_write",
+  ];
+
   return validPermissions.includes(permission as Permission);
 }
 
 /**
- * Parse permission into resource and action
+ * Parse a permission string into resource and action
  */
 export function parsePermission(permission: Permission): {
   resource: string;
   action: string;
 } {
-  const [resource, action] = permission.split(":");
+  const [resource, action] = permission.split("_");
   return { resource, action };
 }
 
 /**
- * Get all resources from permissions
+ * Get all resources from a list of permissions
  */
 export function getResourcesFromPermissions(
   permissions: Permission[]
 ): string[] {
-  const resources = permissions.map(
-    (permission) => parsePermission(permission).resource
-  );
-  return [...new Set(resources)];
+  const resources = new Set<string>();
+
+  permissions.forEach((permission) => {
+    const { resource } = parsePermission(permission);
+    resources.add(resource);
+  });
+
+  return Array.from(resources);
 }
 
 /**
  * Get all actions for a specific resource
  */
 export function getActionsForResource(
-  user: User | null,
+  permissions: Permission[],
   resource: string
 ): string[] {
-  const userPermissions = getUserPermissions(user);
-  const resourcePermissions = userPermissions.filter((permission) =>
-    permission.startsWith(`${resource}:`)
-  );
-
-  return resourcePermissions.map(
-    (permission) => parsePermission(permission).action
-  );
+  return permissions
+    .filter((permission) => parsePermission(permission).resource === resource)
+    .map((permission) => parsePermission(permission).action);
 }

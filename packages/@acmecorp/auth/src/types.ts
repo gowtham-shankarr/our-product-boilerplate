@@ -1,56 +1,18 @@
-// User roles
-export type UserRole = "admin" | "user" | "guest";
+import type { z } from "zod";
+import type {
+  UserSchema,
+  SessionSchema,
+  UserRoleSchema,
+  PermissionSchema,
+} from "./schemas";
 
-// Permission system - resource:action format
-export type Permission =
-  | "users:read"
-  | "users:write"
-  | "users:delete"
-  | "orgs:read"
-  | "orgs:write"
-  | "orgs:delete"
-  | "projects:read"
-  | "projects:write"
-  | "projects:delete"
-  | "billing:read"
-  | "billing:write"
-  | "analytics:read"
-  | "analytics:write";
+// Core types inferred from schemas
+export type User = z.infer<typeof UserSchema>;
+export type Session = z.infer<typeof SessionSchema>;
+export type UserRole = z.infer<typeof UserRoleSchema>;
+export type Permission = z.infer<typeof PermissionSchema>;
 
-import type { DefaultSession, DefaultUser } from "next-auth";
-
-// Extended user interface
-export interface User extends DefaultUser {
-  role: UserRole;
-  permissions: Permission[];
-  emailVerified?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Extended session interface
-export interface Session extends DefaultSession {
-  user: User;
-  accessToken?: string;
-}
-
-// Module augmentation for NextAuth
-declare module "next-auth" {
-  interface Session {
-    user: User;
-    accessToken?: string;
-  }
-
-  interface User {
-    role: UserRole;
-    permissions: Permission[];
-    emailVerified?: Date;
-    createdAt: Date;
-    updatedAt: Date;
-  }
-}
-
-// Auth state for client-side
+// Auth state
 export interface AuthState {
   user: User | null;
   session: Session | null;
@@ -58,66 +20,105 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-// Permission check result
+// Permission checking
 export interface PermissionCheck {
   hasPermission: boolean;
   missingPermissions: Permission[];
+  userPermissions: Permission[];
 }
 
 // Role hierarchy
-export interface RolePermissions {
-  role: UserRole;
-  permissions: Permission[];
-}
+export type RolePermissions = Record<UserRole, Permission[]>;
 
 // Auth configuration
 export interface AuthConfig {
-  providers: any[];
+  providers: string[];
   session: {
     strategy: "jwt" | "database";
     maxAge: number;
   };
-  roles: UserRole[];
-  permissions: Permission[];
-  loginPage: string;
-  dashboardPage: string;
-  maxLoginAttempts: number;
-  sessionTimeout: number;
+  pages: {
+    signIn: string;
+    signOut: string;
+    error: string;
+    verifyRequest: string;
+    newUser: string;
+  };
 }
 
-// NextAuth callback types
+// Auth callbacks
 export interface AuthCallbacks {
-  signIn?: (params: {
-    user: any;
-    account: any;
-    profile?: any;
-    email?: any;
-    credentials?: any;
-  }) => boolean | Promise<boolean>;
-  redirect?: (params: {
-    url: string;
-    baseUrl: string;
-  }) => string | Promise<string>;
-  session?: (params: {
-    session: Session;
-    token: any;
-    user: any;
-  }) => Session | Promise<Session>;
-  jwt?: (params: { token: any; user: any; account: any }) => any | Promise<any>;
+  onSignIn?: (user: User) => void | Promise<void>;
+  onSignOut?: (session: Session) => void | Promise<void>;
+  onSession?: (session: Session) => void | Promise<void>;
+  onError?: (error: Error) => void | Promise<void>;
 }
 
-// Route protection options
+// Route guard options
 export interface RouteGuardOptions {
-  redirectTo?: string;
-  requireAuth?: boolean;
   requiredPermissions?: Permission[];
   requiredRole?: UserRole;
+  redirectTo?: string;
+  fallback?: React.ReactNode;
 }
 
-// API route protection
+// API guard options
 export interface ApiGuardOptions {
-  requireAuth?: boolean;
   requiredPermissions?: Permission[];
   requiredRole?: UserRole;
-  onUnauthorized?: (error: Error) => void;
+  allowUnauthenticated?: boolean;
+}
+
+// Database adapter types
+export interface DatabaseAdapter {
+  createUser: (data: Partial<User>) => Promise<User>;
+  getUser: (id: string) => Promise<User | null>;
+  getUserByEmail: (email: string) => Promise<User | null>;
+  updateUser: (id: string, data: Partial<User>) => Promise<User>;
+  deleteUser: (id: string) => Promise<void>;
+  createSession: (data: Partial<Session>) => Promise<Session>;
+  getSession: (token: string) => Promise<Session | null>;
+  updateSession: (token: string, data: Partial<Session>) => Promise<Session>;
+  deleteSession: (token: string) => Promise<void>;
+  createVerificationToken: (data: {
+    identifier: string;
+    token: string;
+    expires: Date;
+  }) => Promise<void>;
+  useVerificationToken: (data: {
+    identifier: string;
+    token: string;
+  }) => Promise<void>;
+}
+
+// Email service types
+export interface EmailService {
+  sendVerificationEmail: (email: string, token: string) => Promise<void>;
+  sendPasswordResetEmail: (email: string, token: string) => Promise<void>;
+  sendWelcomeEmail: (email: string, name: string) => Promise<void>;
+}
+
+// Auth service types
+export interface AuthService {
+  signIn: (email: string, password: string) => Promise<User>;
+  signUp: (data: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<User>;
+  signOut: () => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  changePassword: (
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<void>;
+  updateProfile: (userId: string, data: Partial<User>) => Promise<User>;
+  assignRole: (
+    userId: string,
+    role: UserRole,
+    permissions?: Permission[]
+  ) => Promise<User>;
 }

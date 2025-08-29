@@ -85,6 +85,8 @@ export {
   CardTitle,
 } from "./components/ui/card";
 export { Label } from "./components/ui/label";
+export { Alert, AlertDescription } from "./components/ui/alert";
+export { Badge, badgeVariants } from "./components/ui/badge";
 
 // Form components - moved to web app
 

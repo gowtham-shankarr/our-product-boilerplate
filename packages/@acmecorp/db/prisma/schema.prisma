@@ -10,12 +10,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User roles enum
+enum UserRole {
+  admin
+  user
+  guest
+}
+
+// Permissions enum
+enum Permission {
+  users_read
+  users_write
+  users_delete
+  orgs_read
+  orgs_write
+  orgs_delete
+  projects_read
+  projects_write
+  projects_delete
+  billing_read
+  billing_write
+  analytics_read
+  analytics_write
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
+  password      String?   // For credentials authentication
   emailVerified DateTime?
   image         String?
+  role          UserRole  @default(user)
+  permissions   Permission[] @default([])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -23,6 +50,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   memberships   Membership[]
+  passwordResets PasswordReset[]
+  emailVerifications EmailVerification[]
 
   @@map("users")
 }
@@ -95,4 +124,32 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+// Password reset tokens
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+// Email verification tokens
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verifications")
 }

@@ -87,6 +87,17 @@ export {
 export { Label } from "./components/ui/label";
 export { Alert, AlertDescription } from "./components/ui/alert";
 export { Badge, badgeVariants } from "./components/ui/badge";
+export { Switch } from "./components/ui/switch";
+export { Textarea } from "./components/ui/textarea";
+export {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/ui/dialog";
 
 // Form components - moved to web app
 

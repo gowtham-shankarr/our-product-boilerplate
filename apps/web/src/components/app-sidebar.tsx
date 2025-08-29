@@ -58,6 +58,14 @@ const data = {
           title: "Settings",
           url: "/dashboard/settings",
         },
+        {
+          title: "Profile",
+          url: "/profile",
+        },
+        {
+          title: "Organization Settings",
+          url: "/org",
+        },
       ],
     },
     {

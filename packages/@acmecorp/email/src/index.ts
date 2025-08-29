@@ -10,3 +10,6 @@ export const emailTemplates = {
     html: "<p>Verify your email</p>",
   }),
 } as const;
+
+// Email service
+export { EmailService } from "./email-service";

@@ -17,6 +17,8 @@ import {
 } from "@acmecorp/ui";
 import { Icon } from "@acmecorp/icons";
 import { UserInfo } from "../../components/user-info";
+import { OrganizationSwitcher } from "@/components/organization-switcher";
+import { CreateOrganizationDialog } from "@/components/organization/create-organization-dialog";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -81,6 +83,32 @@ export default async function DashboardPage() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+
+          {/* Organization Switcher and Create Organization */}
+          <div className="ml-auto px-4 flex items-center gap-2">
+            {userWithOrg && userWithOrg.memberships.length > 0 && (
+              <OrganizationSwitcher
+                currentOrg={{
+                  id: userWithOrg.memberships[0].organization.id,
+                  name: userWithOrg.memberships[0].organization.name,
+                  slug: userWithOrg.memberships[0].organization.slug,
+                  role: userWithOrg.memberships[0].role,
+                }}
+                organizations={userWithOrg.memberships.map(
+                  (m: {
+                    organization: { id: string; name: string; slug: string };
+                    role: string;
+                  }) => ({
+                    id: m.organization.id,
+                    name: m.organization.name,
+                    slug: m.organization.slug,
+                    role: m.role,
+                  })
+                )}
+              />
+            )}
+            <CreateOrganizationDialog />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-6 p-6 pt-0">

@@ -8,6 +8,7 @@ const serverSchema = z.object({
   NEXTAUTH_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(1),
   ENCRYPTION_SECRET: z.string().min(1),
+  EMAIL_API_KEY: z.string().min(1),
 
   // OAuth Providers
   GOOGLE_CLIENT_ID: z.string().optional(),

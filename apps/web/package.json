@@ -14,6 +14,7 @@
     "@acmecorp/api": "workspace:*",
     "@acmecorp/auth": "workspace:*",
     "@acmecorp/db": "workspace:*",
+    "@acmecorp/email": "workspace:*",
     "@acmecorp/env": "workspace:*",
     "@acmecorp/icons": "workspace:^",
     "@acmecorp/orgs": "workspace:*",

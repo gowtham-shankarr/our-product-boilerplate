@@ -1,14 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ChevronDown, Building2, Plus, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  Badge,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CreateOrganizationDialog } from "./organization/create-organization-dialog";
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
 } from "@acmecorp/ui";
 import { Icon } from "@acmecorp/icons";
 
@@ -16,92 +26,191 @@ interface Organization {
   id: string;
   name: string;
   slug: string;
+  logoUrl?: string;
+}
+
+interface Membership {
+  id: string;
   role: string;
+  organization: Organization;
 }
 
-interface OrganizationSwitcherProps {
-  currentOrg?: Organization;
-  organizations: Organization[];
-}
+export function OrganizationSwitcher() {
+  const { data: session, update } = useSession();
+  const [organizations, setOrganizations] = useState<Membership[]>([]);
+  const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-export function OrganizationSwitcher({
-  currentOrg,
-  organizations,
-}: OrganizationSwitcherProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchOrganizations();
+    }
+  }, [session?.user?.id]);
 
-  const handleOrgSwitch = async (orgSlug: string) => {
-    setIsLoading(true);
+  const fetchOrganizations = async () => {
+    try {
+      const response = await fetch("/api/organizations");
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data.memberships);
 
-    // Update the URL to reflect the new organization
-    const newPath = pathname.replace(/\/org\/[^\/]+/, `/org/${orgSlug}`);
-    router.push(newPath as any);
-
-    setIsLoading(false);
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case "owner":
-        return "default";
-      case "admin":
-        return "secondary";
-      case "member":
-        return "outline";
-      default:
-        return "outline";
+        // Set current org from session or first org
+        const currentOrgId = session?.user?.orgId;
+        const current = data.memberships.find(
+          (m: Membership) => m.organization.id === currentOrgId
+        );
+        setCurrentOrg(
+          current?.organization || data.memberships[0]?.organization
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch organizations:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (!currentOrg) {
-    return null;
+  const handleOrgSwitch = async (orgId: string) => {
+    try {
+      const response = await fetch("/api/organizations/switch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ orgId }),
+      });
+
+      if (response.ok) {
+        // Update session with new orgId
+        await update({ orgId });
+
+        // Update current org
+        const newOrg = organizations.find(
+          (m) => m.organization.id === orgId
+        )?.organization;
+        setCurrentOrg(newOrg || null);
+
+        // Reload the page to update context and ensure session is updated
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Failed to switch organization:", error);
+    }
+  };
+
+  const handleCreateOrg = () => {
+    setShowCreateDialog(true);
+  };
+
+  const onOrgCreated = (newOrg: Organization) => {
+    setShowCreateDialog(false);
+    fetchOrganizations(); // Refresh the list
+  };
+
+  const { isMobile } = useSidebar();
+
+  if (isLoading) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" disabled>
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <Icon name="refresh-cw" size={16} className="animate-spin" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-semibold">Loading...</span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
-          <Icon name="users" className="h-4 w-4" />
-          <span className="truncate max-w-[150px]">{currentOrg.name}</span>
-          <Badge
-            variant={getRoleBadgeVariant(currentOrg.role)}
-            className="text-xs"
-          >
-            {currentOrg.role}
-          </Badge>
-          <Icon name="chevron-down" className="h-4 w-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <div className="px-2 py-1.5 text-sm font-medium">Organizations</div>
-        <DropdownMenuSeparator />
-        {organizations.map((org) => (
-          <DropdownMenuItem
-            key={org.id}
-            onClick={() => handleOrgSwitch(org.slug)}
-            disabled={isLoading || org.id === currentOrg.id}
-            className="flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <Icon name="users" className="h-4 w-4" />
-              <span className="truncate">{org.name}</span>
-            </div>
-            <Badge variant={getRoleBadgeVariant(org.role)} className="text-xs">
-              {org.role}
-            </Badge>
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => router.push("/dashboard")}
-          className="flex items-center gap-2"
-        >
-          <Icon name="plus" className="h-4 w-4" />
-          Create Organization
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <Icon name="users" size={16} />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">
+                    {currentOrg?.name || "Select Organization"}
+                  </span>
+                  <span className="truncate text-xs">
+                    {organizations.find(
+                      (m) => m.organization.id === currentOrg?.id
+                    )?.role || "Member"}
+                  </span>
+                </div>
+                <Icon name="chevrons-up-down" size={16} className="ml-auto" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+              align="start"
+              side={isMobile ? "bottom" : "right"}
+              sideOffset={4}
+            >
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Organizations
+              </DropdownMenuLabel>
+              {organizations.map((membership) => (
+                <DropdownMenuItem
+                  key={membership.organization.id}
+                  onClick={() => handleOrgSwitch(membership.organization.id)}
+                  className="gap-2 p-2"
+                >
+                  <div className="flex size-6 items-center justify-center rounded-sm border">
+                    <Icon name="users" size={16} className="shrink-0" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {membership.organization.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground capitalize">
+                      {membership.role}
+                    </div>
+                  </div>
+                  {currentOrg?.id === membership.organization.id && (
+                    <div className="h-2 w-2 bg-primary rounded-full" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleCreateOrg} className="gap-2 p-2">
+                <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                  <Icon name="plus" size={16} />
+                </div>
+                <div className="font-medium">Create New Organization</div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => (window.location.href = "/organizations")}
+                className="gap-2 p-2"
+              >
+                <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                  <Icon name="users" size={16} />
+                </div>
+                <div className="font-medium">All Organizations</div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+
+      <CreateOrganizationDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onOrgCreated={onOrgCreated}
+      />
+    </>
   );
 }

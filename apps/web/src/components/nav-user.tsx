@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession, signOut } from "next-auth/react";
 import { Icon } from "@acmecorp/icons";
 
 import {
@@ -19,16 +20,19 @@ import {
   useSidebar,
 } from "@acmecorp/ui";
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
-}) {
+export function NavUser() {
+  const { data: session } = useSession();
   const { isMobile } = useSidebar();
+
+  if (!session?.user) {
+    return null;
+  }
+
+  const user = {
+    name: session.user.name || "User",
+    email: session.user.email || "",
+    avatar: session.user.image || "",
+  };
 
   return (
     <SidebarMenu>
@@ -41,7 +45,9 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  {user.name?.charAt(0)?.toUpperCase() || "U"}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
@@ -60,7 +66,9 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.name}</span>
@@ -77,9 +85,11 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Icon name="badge-check" size={16} />
-                Account
+              <DropdownMenuItem
+                onClick={() => (window.location.href = "/profile")}
+              >
+                <Icon name="user" size={16} />
+                Profile
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Icon name="credit-card" size={16} />
@@ -91,7 +101,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => signOut()}>
               <Icon name="log-out" size={16} />
               Log out
             </DropdownMenuItem>

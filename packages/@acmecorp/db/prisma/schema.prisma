@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,48 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User roles enum
-enum UserRole {
-  admin
-  user
-  guest
-}
-
-// Permissions enum
-enum Permission {
-  users_read
-  users_write
-  users_delete
-  orgs_read
-  orgs_write
-  orgs_delete
-  projects_read
-  projects_write
-  projects_delete
-  billing_read
-  billing_write
-  analytics_read
-  analytics_write
-}
-
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  password      String?   // For credentials authentication
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(user)
-  permissions   Permission[] @default([])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations
-  accounts      Account[]
-  sessions      Session[]
-  memberships   Membership[]
-  passwordResets PasswordReset[]
+  id                 String               @id @default(cuid())
+  email              String               @unique
+  emailVerified      Boolean              @default(false)
+  passwordHash       String?
+  authProvider       String               @default("local")
+  name               String
+  firstName          String?
+  lastName           String?
+  avatarUrl          String?
+  phone              String?
+  phoneVerified      Boolean              @default(false)
+  role               String               @default("user")
+  permissions        String[]
+  status             String               @default("active")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  deletedAt          DateTime?
+  lastLoginAt        DateTime?
+  lastActiveAt       DateTime?
+  loginCount         Int                  @default(0)
+  sessionVersion     Int                  @default(1)
+  twoFactorEnabled   Boolean              @default(false)
+  twoFactorSecret    String?
+  ipLastLogin        String?
+  userAgentLastLogin String?
+  locale             String?
+  timezone           String?
+  preferences        Json?
+  metadata           Json?
+  accounts           Account[]
   emailVerifications EmailVerification[]
+  memberships        Membership[]
+  onboardingProgress OnboardingProgress[]
+  passwordResets     PasswordReset[]
+  sessions           Session[]
+  userPreferences    UserPreferences?
 
   @@map("users")
 }
@@ -62,15 +54,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -87,33 +78,36 @@ model Session {
 }
 
 model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  image       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  memberships Membership[]
+  id             String       @id @default(cuid())
+  name           String
+  slug           String       @unique
+  logoUrl        String?
+  domain         String?
+  plan           String       @default("free")
+  status         String       @default("active")
+  billingEmail   String?
+  trialEndsAt    DateTime?
+  subscriptionId String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  memberships    Membership[]
 
   @@map("organizations")
 }
 
 model Membership {
-  id             String   @id @default(cuid())
-  role           String   @default("member") // owner, admin, member
-  userId         String
-  organizationId String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
+  id           String       @id @default(cuid())
+  userId       String
+  orgId        String
+  role         String       @default("member")
+  permissions  String[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, organizationId])
+  @@unique([userId, orgId])
   @@map("memberships")
 }
 
@@ -126,7 +120,6 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// Password reset tokens
 model PasswordReset {
   id        String   @id @default(cuid())
   userId    String
@@ -134,13 +127,11 @@ model PasswordReset {
   expires   DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_resets")
 }
 
-// Email verification tokens
 model EmailVerification {
   id        String   @id @default(cuid())
   userId    String
@@ -148,8 +139,55 @@ model EmailVerification {
   expires   DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("email_verifications")
+}
+
+model OnboardingStep {
+  id          String               @id @default(cuid())
+  key         String               @unique
+  title       String
+  description String?
+  order       Int
+  required    Boolean              @default(false)
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  progress    OnboardingProgress[]
+
+  @@map("onboarding_steps")
+}
+
+model OnboardingProgress {
+  id          String         @id @default(cuid())
+  userId      String
+  stepId      String
+  completed   Boolean        @default(false)
+  skipped     Boolean        @default(false)
+  data        Json?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  step        OnboardingStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stepId])
+  @@map("onboarding_progress")
+}
+
+model UserPreferences {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  onboardingCompleted   Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+  theme                 String    @default("light")
+  language              String    @default("en")
+  timezone              String    @default("UTC")
+  emailNotifications    Json      @default("{}")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
 }

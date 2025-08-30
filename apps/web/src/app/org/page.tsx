@@ -28,5 +28,5 @@ export default async function OrganizationPage() {
   }
 
   // Redirect to the first organization's settings
-  redirect(`/org/${user.memberships[0].organization.slug}/settings`);
+  redirect(`/${user.memberships[0].organization.id}/settings`);
 }

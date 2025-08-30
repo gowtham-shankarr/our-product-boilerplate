@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
       data: {
         name: validatedData.name,
         slug: slug,
-        description: validatedData.description || "",
       },
     });
 
@@ -48,8 +47,9 @@ export async function POST(request: NextRequest) {
     await db.membership.create({
       data: {
         userId: session.user.id,
-        organizationId: organization.id,
+        orgId: organization.id,
         role: "owner",
+        permissions: ["orgs_read", "orgs_write", "orgs_admin"],
       },
     });
 
@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
         id: organization.id,
         name: organization.name,
         slug: organization.slug,
-        description: organization.description,
       },
     });
   } catch (error) {

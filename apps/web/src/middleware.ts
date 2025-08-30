@@ -192,6 +192,7 @@ export function middleware(request: NextRequest) {
     if (
       request.nextUrl.pathname.startsWith("/api/") &&
       !request.nextUrl.pathname.startsWith("/api/auth/") &&
+      !request.nextUrl.pathname.startsWith("/api/onboarding/") &&
       !csrfToken
     ) {
       return new NextResponse(

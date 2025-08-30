@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@acmecorp/db";
+
 import { compare, hash } from "bcryptjs";
 import { z } from "zod";
 
@@ -12,6 +13,7 @@ declare module "next-auth" {
   interface User {
     role?: string;
     permissions?: string[];
+    orgId?: string;
   }
 
   interface Session {
@@ -22,6 +24,7 @@ declare module "next-auth" {
       image?: string | null;
       role?: string;
       permissions?: string[];
+      orgId?: string;
     };
   }
 }
@@ -31,6 +34,7 @@ declare module "next-auth/jwt" {
     id?: string;
     role?: string;
     permissions?: string[];
+    orgId?: string;
   }
 }
 
@@ -48,6 +52,35 @@ const signUpSchema = z.object({
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
+  callbacks: {
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.permissions = user.permissions;
+
+        // Get user's primary organization (first membership)
+        if (!token.orgId) {
+          const membership = await db.membership.findFirst({
+            where: { userId: user.id },
+            include: { organization: true },
+            orderBy: { createdAt: "asc" },
+          });
+          token.orgId = membership?.organization.id;
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.permissions = token.permissions;
+        session.user.orgId = token.orgId;
+      }
+      return session;
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -74,11 +107,11 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Verify password
-          if (!user.password) {
+          if (!user.passwordHash) {
             return null; // User doesn't have a password (OAuth only)
           }
 
-          const isValidPassword = await compare(password, user.password);
+          const isValidPassword = await compare(password, user.passwordHash);
           if (!isValidPassword) {
             return null;
           }
@@ -105,24 +138,6 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
     }),
   ],
-  callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.permissions = user.permissions;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role;
-        session.user.permissions = token.permissions;
-      }
-      return session;
-    },
-  },
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
@@ -184,7 +199,7 @@ export async function signUp(data: z.infer<typeof signUpSchema>) {
       data: {
         name,
         email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         role: "user",
         permissions: ["users_read"],
       },
@@ -200,7 +215,6 @@ export async function signUp(data: z.infer<typeof signUpSchema>) {
         data: {
           name: `${name}'s Organization`,
           slug: `${name.toLowerCase().replace(/\s+/g, "-")}-org`,
-          description: "Default organization created for new user",
         },
       });
     } else {
@@ -210,7 +224,6 @@ export async function signUp(data: z.infer<typeof signUpSchema>) {
         data: {
           name: `${name}'s Personal Organization`,
           slug: `${name.toLowerCase().replace(/\s+/g, "-")}-personal`,
-          description: "Personal organization",
         },
       });
     }
@@ -219,8 +232,9 @@ export async function signUp(data: z.infer<typeof signUpSchema>) {
     await db.membership.create({
       data: {
         userId: user.id,
-        organizationId: organization.id,
+        orgId: organization.id,
         role: existingOrgs === 0 ? "owner" : "admin", // First user is owner, others are admin
+        permissions: ["orgs_read", "orgs_write"],
       },
     });
 

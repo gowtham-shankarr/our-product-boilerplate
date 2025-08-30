@@ -3,7 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: ["src/index.ts", "src/rq.ts", "src/actions.ts"],
   format: ["esm"],
-  dts: true,
+  dts: process.env.NODE_ENV === "production",
   clean: true,
   external: [
     "@acmecorp/db",
@@ -14,5 +14,5 @@ export default defineConfig({
     "react",
   ],
   treeshake: true,
-  sourcemap: true,
+  sourcemap: process.env.NODE_ENV === "production",
 });

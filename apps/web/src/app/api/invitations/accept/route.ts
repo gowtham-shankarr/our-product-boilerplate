@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Check if user is already a member
     const existingMembership = await db.membership.findFirst({
       where: {
-        organizationId: organization.id,
+        orgId: organization.id,
         userId: session.user.id,
       },
     });
@@ -62,8 +62,9 @@ export async function POST(request: NextRequest) {
     await db.membership.create({
       data: {
         userId: session.user.id,
-        organizationId: organization.id,
+        orgId: organization.id,
         role: role as "member" | "admin",
+        permissions: ["orgs_read"],
       },
     });
 

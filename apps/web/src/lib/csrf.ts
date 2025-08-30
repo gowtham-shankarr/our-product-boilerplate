@@ -50,3 +50,39 @@ export function getCSRFToken(sessionId: string): string | null {
 
   return stored.token;
 }
+
+// Client-side CSRF token utility functions
+
+export async function fetchCSRFToken(): Promise<string | null> {
+  try {
+    const response = await fetch("/api/csrf");
+    if (response.ok) {
+      const data = await response.json();
+      return data.token;
+    }
+  } catch (error) {
+    console.error("Error fetching CSRF token:", error);
+  }
+  return null;
+}
+
+export async function fetchWithCSRF(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const csrfToken = await fetchCSRFToken();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (csrfToken) {
+    headers["x-csrf-token"] = csrfToken;
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}

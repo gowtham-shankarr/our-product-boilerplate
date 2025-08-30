@@ -30,10 +30,10 @@ export async function PUT(request: NextRequest) {
     // Get current user with password
     const user = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { password: true },
+      select: { passwordHash: true },
     });
 
-    if (!user?.password) {
+    if (!user?.passwordHash) {
       return NextResponse.json(
         { error: "User not found or no password set" },
         { status: 400 }
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
     // Verify current password
     const isValidPassword = await compare(
       validatedData.currentPassword,
-      user.password
+      user.passwordHash
     );
 
     if (!isValidPassword) {
@@ -59,7 +59,7 @@ export async function PUT(request: NextRequest) {
     // Update password
     await db.user.update({
       where: { id: session.user.id },
-      data: { password: hashedNewPassword },
+      data: { passwordHash: hashedNewPassword },
     });
 
     return NextResponse.json({

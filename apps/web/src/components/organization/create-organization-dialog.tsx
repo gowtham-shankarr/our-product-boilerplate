@@ -23,10 +23,16 @@ import { Icon } from "@acmecorp/icons";
 
 interface CreateOrganizationDialogProps {
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onOrgCreated?: (newOrg: any) => void;
 }
 
 export function CreateOrganizationDialog({
   trigger,
+  open,
+  onOpenChange,
+  onOrgCreated,
 }: CreateOrganizationDialogProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -36,6 +42,10 @@ export function CreateOrganizationDialog({
     name: "",
     description: "",
   });
+
+  // Use controlled state if provided, otherwise use internal state
+  const dialogOpen = open !== undefined ? open : isOpen;
+  const setDialogOpen = onOpenChange || setIsOpen;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -51,10 +61,15 @@ export function CreateOrganizationDialog({
     setError(null);
 
     try {
+      // Get CSRF token
+      const csrfResponse = await fetch("/api/csrf");
+      const { csrfToken } = await csrfResponse.json();
+
       const response = await fetch("/api/organizations/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
         },
         body: JSON.stringify(formData),
       });
@@ -66,10 +81,16 @@ export function CreateOrganizationDialog({
       }
 
       // Close dialog and redirect to the new organization
-      setIsOpen(false);
+      setDialogOpen(false);
       setFormData({ name: "", description: "" });
-      router.push(`/org/${result.organization.slug}/settings`);
-      router.refresh();
+      
+      // Call the callback if provided
+      if (onOrgCreated && result.organization) {
+        onOrgCreated(result.organization);
+      } else {
+        router.push(`/settings`);
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -78,7 +99,7 @@ export function CreateOrganizationDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         {trigger || (
           <Button>
@@ -133,7 +154,7 @@ export function CreateOrganizationDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsOpen(false)}
+              onClick={() => setDialogOpen(false)}
               disabled={isLoading}
             >
               Cancel

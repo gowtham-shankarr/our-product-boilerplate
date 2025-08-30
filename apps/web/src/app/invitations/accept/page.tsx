@@ -61,6 +61,11 @@ export default async function InvitationAcceptPage({
       organization: { slug: org },
       userId: session.user.id,
     },
+    include: {
+      organization: {
+        select: { id: true, name: true },
+      },
+    },
   });
 
   if (existingMembership) {
@@ -76,9 +81,7 @@ export default async function InvitationAcceptPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button
-              onClick={() => (window.location.href = `/org/${org}/settings`)}
-            >
+            <Button onClick={() => (window.location.href = `/settings`)}>
               <Icon name="users" className="mr-2 h-4 w-4" />
               Go to Organization
             </Button>

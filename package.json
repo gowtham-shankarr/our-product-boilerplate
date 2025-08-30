@@ -5,16 +5,18 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --concurrency 16",
+    "dev": "turbo run dev",
+    "dev:fast": "cd apps/web && pnpm dev",
+    "dev:web": "cd apps/web && pnpm dev",
+    "dev:admin": "cd apps/admin && pnpm dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "db:generate": "turbo run db:generate",
-    "db:migrate": "turbo run db:migrate",
-    "db:seed": "turbo run db:seed",
-    "rename": "node scripts/rename-packages.js"
+    "db:generate": "cd packages/@acmecorp/db && pnpm prisma generate",
+    "db:migrate": "cd packages/@acmecorp/db && pnpm prisma db push",
+    "db:seed": "cd packages/@acmecorp/db && pnpm prisma db seed",
+    "setup": "node setup.js"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

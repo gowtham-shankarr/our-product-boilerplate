@@ -29,8 +29,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, Settings, Mail, Shield } from "lucide-react";
+import {
+  Building2,
+  Users,
+  Settings,
+  Mail,
+  Shield,
+  CreditCard,
+} from "lucide-react";
 import { TeamSection } from "@/components/organization/team-section";
+import { PricingPage } from "@/components/pricing/pricing-page";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -125,6 +133,7 @@ export default async function SettingsPage() {
               <TabsList>
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="team">Team</TabsTrigger>
+                <TabsTrigger value="pricing">Pricing</TabsTrigger>
                 <TabsTrigger value="billing">Billing</TabsTrigger>
                 <TabsTrigger value="security">Security</TabsTrigger>
               </TabsList>
@@ -196,6 +205,23 @@ export default async function SettingsPage() {
                   canManageInvitations={canManageInvitations}
                   currentUserId={session.user.id}
                 />
+              </TabsContent>
+
+              <TabsContent value="pricing" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Pricing Plans
+                    </CardTitle>
+                    <CardDescription>
+                      Choose the best plan for your organization
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PricingPage />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="billing" className="space-y-6">

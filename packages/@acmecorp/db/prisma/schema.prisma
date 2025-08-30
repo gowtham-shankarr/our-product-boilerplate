@@ -92,6 +92,7 @@ model Organization {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   memberships    Membership[]
+  invitations    Invitation[]
 
   @@map("organizations")
 }
@@ -109,6 +110,22 @@ model Membership {
 
   @@unique([userId, orgId])
   @@map("memberships")
+}
+
+model Invitation {
+  id         String       @id @default(cuid())
+  email      String
+  orgId      String
+  role       String       @default("member")
+  status     String       @default("pending") // pending, accepted, expired, cancelled
+  token      String       @unique
+  expiresAt  DateTime
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([email, orgId])
+  @@map("invitations")
 }
 
 model VerificationToken {

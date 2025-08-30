@@ -91,11 +91,17 @@ export function OrganizationSwitcher() {
         )?.organization;
         setCurrentOrg(newOrg || null);
 
-        // Reload the page to update context and ensure session is updated
+        // Refresh the page to update all components with new org context
+        // This ensures all components that depend on session.user.orgId are updated
         window.location.reload();
+      } else {
+        const error = await response.json();
+        console.error("Failed to switch organization:", error);
+        alert(error.error || "Failed to switch organization");
       }
     } catch (error) {
       console.error("Failed to switch organization:", error);
+      alert("Failed to switch organization");
     }
   };
 

@@ -45,7 +45,10 @@ export class EmailService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: data.from || "noreply@yourdomain.com",
+          from:
+            data.from ||
+            process.env.RESEND_FROM_EMAIL ||
+            "onboarding@resend.dev",
           to: data.to,
           subject: data.subject,
           html: data.html,

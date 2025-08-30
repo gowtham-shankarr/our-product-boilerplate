@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@acmecorp/ui";
+import { fetchWithCSRF } from "@/lib/csrf";
 
 interface OrganizationCardProps {
   membership: any;
@@ -37,7 +38,7 @@ export function OrganizationCard({
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithCSRF(
         `/api/organizations/${membership.organization.id}`,
         {
           method: "DELETE",

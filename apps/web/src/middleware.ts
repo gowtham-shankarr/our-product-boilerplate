@@ -183,28 +183,6 @@ export function middleware(request: NextRequest) {
   // Handle CORS
   const corsResponse = handleCORS(request, response);
 
-  // CSRF Protection for state-changing requests
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    const csrfToken = request.headers.get("x-csrf-token");
-    const sessionToken = request.cookies.get("next-auth.csrf-token")?.value;
-
-    // For API routes, require CSRF token
-    if (
-      request.nextUrl.pathname.startsWith("/api/") &&
-      !request.nextUrl.pathname.startsWith("/api/auth/") &&
-      !request.nextUrl.pathname.startsWith("/api/onboarding/") &&
-      !csrfToken
-    ) {
-      return new NextResponse(
-        JSON.stringify({ error: "CSRF token required" }),
-        {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-  }
-
   return corsResponse;
 }
 

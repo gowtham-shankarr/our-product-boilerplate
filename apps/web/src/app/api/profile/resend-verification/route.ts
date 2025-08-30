@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize email service
-    const emailService = new EmailService(process.env.EMAIL_API_KEY || "");
+    const emailService = new EmailService(process.env.RESEND_API_KEY || "");
 
     // Generate verification URL
     const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?email=${encodeURIComponent(user.email)}&token=verification-token`;

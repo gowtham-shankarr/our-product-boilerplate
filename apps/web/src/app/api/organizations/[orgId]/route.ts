@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@acmecorp/db";
+import { withCSRF } from "@/lib/csrf-server";
 
-export async function DELETE(
+async function deleteOrganization(
   request: NextRequest,
   { params }: { params: { orgId: string } }
 ) {
@@ -61,3 +62,5 @@ export async function DELETE(
     );
   }
 }
+
+export const DELETE = withCSRF(deleteOrganization);

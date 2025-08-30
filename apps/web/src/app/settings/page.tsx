@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, Users, Settings, Mail, Shield } from "lucide-react";
+import { TeamSection } from "@/components/organization/team-section";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -39,7 +40,6 @@ export default async function SettingsPage() {
   }
 
   // Get current organization from session
-
   const membership = await db.membership.findFirst({
     where: {
       userId: session.user.id,
@@ -85,6 +85,10 @@ export default async function SettingsPage() {
       createdAt: "asc",
     },
   });
+
+  // Check if user can manage invitations (owner or admin)
+  const canManageInvitations =
+    membership.role === "owner" || membership.role === "admin";
 
   return (
     <DashboardWrapper>
@@ -186,62 +190,12 @@ export default async function SettingsPage() {
               </TabsContent>
 
               <TabsContent value="team" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Team Members
-                    </CardTitle>
-                    <CardDescription>
-                      Manage your team members and their roles
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {teamMembers.map((member: any) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                              {member.user.avatarUrl ? (
-                                <img
-                                  src={member.user.avatarUrl}
-                                  alt={member.user.name || ""}
-                                  className="h-10 w-10 rounded-full"
-                                />
-                              ) : (
-                                <span className="text-sm font-medium">
-                                  {member.user.name?.charAt(0)?.toUpperCase() ||
-                                    "U"}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium">{member.user.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {member.user.email}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="capitalize">
-                              {member.role}
-                            </Badge>
-                            {member.user.id === session.user.id && (
-                              <Badge variant="secondary">You</Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <Button className="mt-4">
-                      <Mail className="h-4 w-4 mr-2" />
-                      Invite Team Member
-                    </Button>
-                  </CardContent>
-                </Card>
+                <TeamSection
+                  teamMembers={teamMembers}
+                  organizationId={organization.id}
+                  canManageInvitations={canManageInvitations}
+                  currentUserId={session.user.id}
+                />
               </TabsContent>
 
               <TabsContent value="billing" className="space-y-6">

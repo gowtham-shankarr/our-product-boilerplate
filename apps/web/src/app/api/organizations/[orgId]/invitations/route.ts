@@ -4,15 +4,72 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@acmecorp/db";
 import { EmailService } from "@/lib/email";
 import { z } from "zod";
+import { randomBytes } from "crypto";
 
 const invitationSchema = z.object({
   email: z.string().email("Invalid email address"),
   role: z.enum(["member", "admin"]),
 });
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { orgId: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is a member of this organization
+    const userMembership = await db.membership.findFirst({
+      where: {
+        orgId: params.orgId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!userMembership) {
+      return NextResponse.json(
+        { error: "You don't have access to this organization" },
+        { status: 403 }
+      );
+    }
+
+    // Get pending invitations
+    const invitations = await db.invitation.findMany({
+      where: {
+        orgId: params.orgId,
+        status: "pending",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({
+      invitations: invitations.map((invitation: any) => ({
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        status: invitation.status,
+        createdAt: invitation.createdAt,
+        expiresAt: invitation.expiresAt,
+      })),
+    });
+  } catch (error) {
+    console.error("Error fetching invitations:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: { orgId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -27,7 +84,7 @@ export async function POST(
     // Check if user is a member of this organization with admin/owner role
     const userMembership = await db.membership.findFirst({
       where: {
-        organization: { slug: params.slug },
+        orgId: params.orgId,
         userId: session.user.id,
         role: { in: ["owner", "admin"] },
       },
@@ -46,7 +103,7 @@ export async function POST(
       include: {
         memberships: {
           where: {
-            organization: { slug: params.slug },
+            orgId: params.orgId,
           },
         },
       },
@@ -59,9 +116,25 @@ export async function POST(
       );
     }
 
+    // Check if invitation already exists
+    const existingInvitation = await db.invitation.findFirst({
+      where: {
+        email: validatedData.email,
+        orgId: params.orgId,
+        status: "pending",
+      },
+    });
+
+    if (existingInvitation) {
+      return NextResponse.json(
+        { error: "An invitation has already been sent to this email" },
+        { status: 400 }
+      );
+    }
+
     // Get organization and inviter details
     const organization = await db.organization.findUnique({
-      where: { slug: params.slug },
+      where: { id: params.orgId },
       select: { id: true, name: true },
     });
 
@@ -77,11 +150,26 @@ export async function POST(
       select: { name: true },
     });
 
-    // Initialize email service
-    const emailService = new EmailService(process.env.EMAIL_API_KEY || "");
+    // Generate invitation token
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    // Generate invitation URL (in a real app, you'd create a token and store it)
-    const invitationUrl = `${process.env.NEXTAUTH_URL}/invitations/accept?email=${encodeURIComponent(validatedData.email)}&org=${params.slug}&role=${validatedData.role}`;
+    // Create invitation in database
+    const invitation = await db.invitation.create({
+      data: {
+        email: validatedData.email,
+        orgId: params.orgId,
+        role: validatedData.role,
+        token,
+        expiresAt,
+      },
+    });
+
+    // Initialize email service
+    const emailService = new EmailService(process.env.RESEND_API_KEY || "");
+
+    // Generate invitation URL
+    const invitationUrl = `${process.env.NEXTAUTH_URL}/invitations/accept?token=${token}`;
 
     // Send invitation email
     const emailResult = await emailService.sendInvitationEmail(
@@ -95,12 +183,18 @@ export async function POST(
     if (!emailResult.success) {
       console.error("Email sending failed:", emailResult.error);
       // For development, we'll still return success but log the error
-      if (process.env.NODE_ENV === "development") {
-        console.log("Development mode: Invitation URL:", invitationUrl);
+      if (
+        process.env.NODE_ENV === "development" ||
+        !process.env.RESEND_API_KEY
+      ) {
+        console.log("🚀 Development mode: Invitation URL:", invitationUrl);
+        console.log(
+          "📧 To send real emails, get a Resend API key from resend.com"
+        );
         return NextResponse.json({
           success: true,
           message:
-            "Invitation created (email not sent - check console for URL)",
+            "Invitation created! Check console for the invitation URL to share manually.",
           invitationUrl: invitationUrl,
           messageId: "dev-mode",
         });

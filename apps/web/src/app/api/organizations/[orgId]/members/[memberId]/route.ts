@@ -10,7 +10,7 @@ const updateMemberSchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string; memberId: string } }
+  { params }: { params: { orgId: string; memberId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -25,7 +25,7 @@ export async function PUT(
     // Check if user is a member of this organization with admin/owner role
     const userMembership = await db.membership.findFirst({
       where: {
-        organization: { slug: params.slug },
+        orgId: params.orgId,
         userId: session.user.id,
         role: { in: ["owner", "admin"] },
       },
@@ -42,13 +42,13 @@ export async function PUT(
     const targetMembership = await db.membership.findUnique({
       where: { id: params.memberId },
       include: {
-        organization: { select: { slug: true } },
+        organization: { select: { id: true } },
       },
     });
 
     if (
       !targetMembership ||
-      targetMembership.organization.slug !== params.slug
+      targetMembership.organization.id !== params.orgId
     ) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
@@ -71,7 +71,7 @@ export async function PUT(
             id: true,
             name: true,
             email: true,
-            image: true,
+            avatarUrl: true,
           },
         },
       },
@@ -104,7 +104,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string; memberId: string } }
+  { params }: { params: { orgId: string; memberId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -116,7 +116,7 @@ export async function DELETE(
     // Check if user is a member of this organization with admin/owner role
     const userMembership = await db.membership.findFirst({
       where: {
-        organization: { slug: params.slug },
+        orgId: params.orgId,
         userId: session.user.id,
         role: { in: ["owner", "admin"] },
       },
@@ -133,13 +133,13 @@ export async function DELETE(
     const targetMembership = await db.membership.findUnique({
       where: { id: params.memberId },
       include: {
-        organization: { select: { slug: true } },
+        organization: { select: { id: true } },
       },
     });
 
     if (
       !targetMembership ||
-      targetMembership.organization.slug !== params.slug
+      targetMembership.organization.id !== params.orgId
     ) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }

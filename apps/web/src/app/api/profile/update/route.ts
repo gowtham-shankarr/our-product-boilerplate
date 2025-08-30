@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
         email: validatedData.email,
         // If email changed, mark as unverified
         ...(validatedData.email !== session.user.email && {
-          emailVerified: null,
+          emailVerified: false,
         }),
       },
     });

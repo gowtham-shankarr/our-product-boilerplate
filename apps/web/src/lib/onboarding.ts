@@ -273,7 +273,7 @@ export class OnboardingService {
         data: {
           completed: false,
           skipped: false,
-          data: null,
+          data: {},
           completedAt: null,
         },
       });
@@ -306,9 +306,6 @@ export class OnboardingService {
         _count: {
           completed: true,
           skipped: true,
-        },
-        include: {
-          step: true,
         },
       });
 

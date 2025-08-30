@@ -8,7 +8,7 @@ const serverSchema = z.object({
   NEXTAUTH_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(1),
   ENCRYPTION_SECRET: z.string().min(1),
-  EMAIL_API_KEY: z.string().min(1),
+  RESEND_API_KEY: z.string().optional(),
 
   // OAuth Providers
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -22,9 +22,6 @@ const serverSchema = z.object({
   EMAIL_SERVER_USER: z.string().optional(),
   EMAIL_SERVER_PASSWORD: z.string().optional(),
   EMAIL_FROM: z.string().email().optional(),
-
-  // Resend Email Service
-  RESEND_API_KEY: z.string().optional(),
 
   // SMTP Configuration
   SMTP_HOST: z.string().optional(),

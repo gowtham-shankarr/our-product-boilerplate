@@ -79,7 +79,14 @@ export default async function ProfilePage() {
           {/* Profile Form */}
           <div className="rounded-xl border bg-card p-6">
             <h3 className="text-lg font-semibold mb-4">Profile Information</h3>
-            <ProfileForm user={user} />
+            <ProfileForm
+              user={{
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                image: user.avatarUrl,
+              }}
+            />
           </div>
 
           {/* Password Change */}
@@ -91,7 +98,14 @@ export default async function ProfilePage() {
           {/* Account Settings */}
           <div className="rounded-xl border bg-card p-6">
             <h3 className="text-lg font-semibold mb-4">Account Settings</h3>
-            <AccountSettingsForm user={user} />
+            <AccountSettingsForm
+              user={{
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                emailVerified: user.emailVerified ? new Date() : null,
+              }}
+            />
           </div>
 
           {/* Danger Zone */}

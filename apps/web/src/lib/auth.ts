@@ -53,13 +53,13 @@ const signUpSchema = z.object({
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.permissions = user.permissions;
 
-        // Get user's primary organization (first membership)
+        // Get user's primary organization (first membership) if orgId not set
         if (!token.orgId) {
           const membership = await db.membership.findFirst({
             where: { userId: user.id },
@@ -69,6 +69,12 @@ export const authOptions: NextAuthOptions = {
           token.orgId = membership?.organization.id;
         }
       }
+
+      // Handle session updates (like orgId changes)
+      if (trigger === "update" && session?.orgId) {
+        token.orgId = session.orgId;
+      }
+
       return token;
     },
     async session({ session, token }) {

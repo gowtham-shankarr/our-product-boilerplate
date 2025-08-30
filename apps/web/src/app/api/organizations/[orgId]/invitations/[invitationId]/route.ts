@@ -6,7 +6,7 @@ import { EmailService } from "@/lib/email";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string; invitationId: string } }
+  { params }: { params: { orgId: string; invitationId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function POST(
     // Check if user is a member of this organization with admin/owner role
     const userMembership = await db.membership.findFirst({
       where: {
-        organization: { slug: params.slug },
+        orgId: params.orgId,
         userId: session.user.id,
         role: { in: ["owner", "admin"] },
       },
@@ -54,7 +54,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string; invitationId: string } }
+  { params }: { params: { orgId: string; invitationId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -66,7 +66,7 @@ export async function DELETE(
     // Check if user is a member of this organization with admin/owner role
     const userMembership = await db.membership.findFirst({
       where: {
-        organization: { slug: params.slug },
+        orgId: params.orgId,
         userId: session.user.id,
         role: { in: ["owner", "admin"] },
       },
@@ -79,18 +79,34 @@ export async function DELETE(
       );
     }
 
-    // TODO: In a real implementation, you would:
-    // 1. Find the invitation by ID
-    // 2. Delete the invitation record
-    // 3. Optionally send a cancellation email
+    // Check if invitation exists and belongs to this organization
+    const invitation = await db.invitation.findFirst({
+      where: {
+        id: params.invitationId,
+        orgId: params.orgId,
+        status: "pending",
+      },
+    });
+
+    if (!invitation) {
+      return NextResponse.json(
+        { error: "Invitation not found or already processed" },
+        { status: 404 }
+      );
+    }
+
+    // Update invitation status to cancelled
+    await db.invitation.update({
+      where: { id: params.invitationId },
+      data: { status: "cancelled" },
+    });
 
     return NextResponse.json({
       success: true,
       message: "Invitation cancelled successfully",
     });
   } catch (error) {
-    console.error("Cancel invitation error:", error);
-
+    console.error("Error cancelling invitation:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

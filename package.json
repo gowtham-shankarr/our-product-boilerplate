@@ -16,7 +16,8 @@
     "db:generate": "cd packages/@acmecorp/db && pnpm prisma generate",
     "db:migrate": "cd packages/@acmecorp/db && pnpm prisma db push",
     "db:seed": "cd packages/@acmecorp/db && pnpm prisma db seed",
-    "setup": "node setup.js"
+    "setup": "node setup.js",
+    "postinstall": "cd packages/@acmecorp/db && pnpm prisma generate"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

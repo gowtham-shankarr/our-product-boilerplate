@@ -1,0 +1,403 @@
+---
+globs: **/auth/**/*.ts,**/middleware.ts,**/security-config.ts
+description: "Security and authentication patterns"
+---
+
+# Security and Authentication Patterns
+
+## 🔐 Authentication System
+
+### NextAuth.js Configuration
+- **Config**: [apps/web/src/lib/auth.ts](mdc:apps/web/src/lib/auth.ts)
+- **Package**: [packages/@acmecorp/auth](mdc:packages/@acmecorp/auth)
+- **Middleware**: [apps/web/src/middleware.ts](mdc:apps/web/src/middleware.ts)
+
+### Authentication Setup
+```typescript
+// ✅ NextAuth configuration
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { db } from "@acmecorp/db";
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(db),
+  providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        // Validate credentials and return user
+      }
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.permissions = user.permissions;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.permissions = token.permissions;
+      }
+      return session;
+    },
+  },
+};
+```
+
+## 🛡️ Security Configuration
+
+### Security Settings
+The security configuration is documented in [apps/web/src/lib/security-config.ts](mdc:apps/web/src/lib/security-config.ts):
+
+```typescript
+export const SECURITY_CONFIG = {
+  // CSRF Protection
+  CSRF: {
+    TOKEN_LIFETIME: 24 * 60 * 60 * 1000, // 24 hours
+    HEADER_NAME: "x-csrf-token",
+    ONE_TIME_USE: true,
+  },
+  
+  // Rate Limiting
+  RATE_LIMIT: {
+    GENERAL_WINDOW: 60 * 1000, // 1 minute
+    GENERAL_MAX_REQUESTS: 100, // 100 requests per minute
+    AUTH_WINDOW: 60 * 1000, // 1 minute
+    AUTH_MAX_REQUESTS: 5, // 5 auth attempts per minute
+  },
+  
+  // CORS Configuration
+  CORS: {
+    ALLOWED_ORIGINS: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://yourdomain.com",
+    ],
+    ALLOWED_METHODS: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    ALLOWED_HEADERS: ["Content-Type", "Authorization", "x-csrf-token"],
+    CREDENTIALS: true,
+  },
+};
+```
+
+## 🔒 Middleware Security
+
+### Rate Limiting and CSRF Protection
+```typescript
+// ✅ Middleware implementation
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+
+// Rate limiting storage (in production, use Redis)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function getRateLimitKey(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip = forwarded ? forwarded.split(",")[0] : request.ip || "unknown";
+  return ip;
+}
+
+function isRateLimited(request: NextRequest): boolean {
+  const key = getRateLimitKey(request);
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minute
+  const maxRequests = 100;
+  
+  const current = rateLimitMap.get(key);
+  
+  if (!current || now > current.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+    return false;
+  }
+  
+  if (current.count >= maxRequests) {
+    return true;
+  }
+  
+  current.count++;
+  return false;
+}
+
+export async function middleware(request: NextRequest) {
+  // Rate limiting
+  if (isRateLimited(request)) {
+    return new NextResponse("Too Many Requests", { status: 429 });
+  }
+  
+  // CSRF protection for state-changing requests
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(request.method)) {
+    const token = request.headers.get("x-csrf-token");
+    if (!token) {
+      return new NextResponse("CSRF token missing", { status: 403 });
+    }
+  }
+  
+  // Authentication check for protected routes
+  const token = await getToken({ req: request });
+  const { pathname } = request.nextUrl;
+  
+  if (pathname.startsWith("/dashboard") && !token) {
+    return NextResponse.redirect(new URL("/auth/signin", request.url));
+  }
+  
+  return NextResponse.next();
+}
+```
+
+## 🔐 Password Security
+
+### Password Hashing
+```typescript
+import { hash, compare } from "bcryptjs";
+
+// ✅ Hash passwords
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await hash(password, saltRounds);
+}
+
+// ✅ Verify passwords
+export async function verifyPassword(
+  password: string,
+  hashedPassword: string
+): Promise<boolean> {
+  return await compare(password, hashedPassword);
+}
+
+// ✅ Password validation
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character");
+```
+
+## 🛡️ Input Validation
+
+### Zod Validation Schemas
+```typescript
+import { z } from "zod";
+
+// ✅ User input validation
+const signUpSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain uppercase letter")
+    .regex(/[a-z]/, "Password must contain lowercase letter")
+    .regex(/[0-9]/, "Password must contain number"),
+});
+
+const signInSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// ✅ API input validation
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const validatedData = signUpSchema.parse(body);
+    
+    // Process validated data
+    const hashedPassword = await hashPassword(validatedData.password);
+    
+    const user = await db.user.create({
+      data: {
+        name: validatedData.name,
+        email: validatedData.email,
+        password: hashedPassword,
+      },
+    });
+    
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## 🔑 Role-Based Access Control (RBAC)
+
+### Permission System
+```typescript
+// ✅ Permission definitions
+export const PERMISSIONS = {
+  USER_READ: "user:read",
+  USER_WRITE: "user:write",
+  USER_DELETE: "user:delete",
+  ORG_READ: "org:read",
+  ORG_WRITE: "org:write",
+  ORG_DELETE: "org:delete",
+  ADMIN_ALL: "admin:all",
+} as const;
+
+export const ROLES = {
+  ADMIN: "admin",
+  USER: "user",
+  GUEST: "guest",
+} as const;
+
+// ✅ Permission checking
+export function hasPermission(
+  userPermissions: string[],
+  requiredPermission: string
+): boolean {
+  return userPermissions.includes(requiredPermission) ||
+         userPermissions.includes(PERMISSIONS.ADMIN_ALL);
+}
+
+// ✅ Role-based route protection
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  
+  if (!hasPermission(session.user.permissions || [], PERMISSIONS.USER_READ)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  
+  // Proceed with authorized operation
+}
+```
+
+## 🔒 Session Management
+
+### Session Configuration
+```typescript
+// ✅ Session security settings
+export const authOptions: NextAuthOptions = {
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  callbacks: {
+    async jwt({ token, user, trigger }) {
+      // Update token on session update
+      if (trigger === "update") {
+        const updatedUser = await db.user.findUnique({
+          where: { id: token.id },
+          select: { role: true, permissions: true },
+        });
+        
+        if (updatedUser) {
+          token.role = updatedUser.role;
+          token.permissions = updatedUser.permissions;
+        }
+      }
+      
+      return token;
+    },
+  },
+};
+```
+
+## 🛡️ Security Headers
+
+### Next.js Security Headers
+```typescript
+// ✅ Security headers configuration
+const securityHeaders = [
+  {
+    key: "X-DNS-Prefetch-Control",
+    value: "on"
+  },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload"
+  },
+  {
+    key: "X-XSS-Protection",
+    value: "1; mode=block"
+  },
+  {
+    key: "X-Frame-Options",
+    value: "SAMEORIGIN"
+  },
+  {
+    key: "X-Content-Type-Options",
+    value: "nosniff"
+  },
+  {
+    key: "Referrer-Policy",
+    value: "origin-when-cross-origin"
+  },
+];
+
+// In next.config.js
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: securityHeaders,
+      },
+    ];
+  },
+};
+```
+
+## 🎯 Best Practices
+
+### Authentication
+- Always use HTTPS in production
+- Implement proper session management
+- Use secure password hashing (bcrypt with salt rounds ≥ 12)
+- Implement account lockout after failed attempts
+- Use strong JWT secrets
+
+### Authorization
+- Implement principle of least privilege
+- Use role-based access control (RBAC)
+- Validate permissions on every protected endpoint
+- Implement proper session invalidation
+
+### Input Validation
+- Validate all user inputs with Zod schemas
+- Sanitize data before database operations
+- Implement proper error handling
+- Use parameterized queries (Prisma handles this)
+
+### Security Monitoring
+- Log security events and failed attempts
+- Implement rate limiting
+- Monitor for suspicious activity
+- Regular security audits and updates

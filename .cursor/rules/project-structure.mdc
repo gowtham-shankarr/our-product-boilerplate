@@ -1,0 +1,84 @@
+---
+alwaysApply: true
+description: "SaaS Boilerplate Project Structure and Architecture Guide"
+---
+
+# SaaS Boilerplate Project Structure
+
+This is a production-ready monorepo for building modern SaaS applications with Next.js, PostgreSQL, and shadcn/ui.
+
+## 🏗️ Architecture Overview
+
+- **Monorepo**: pnpm workspaces + Turborepo
+- **Apps**: [apps/web](mdc:apps/web) (main app) + [apps/admin](mdc:apps/admin) (admin console)
+- **Packages**: Domain-driven packages under [packages/@acmecorp](mdc:packages/@acmecorp)
+- **Database**: PostgreSQL with Prisma ORM
+- **UI**: shadcn/ui + Tailwind CSS
+- **Auth**: NextAuth.js with RBAC
+
+## 📁 Key Directories
+
+### Apps
+- [apps/web](mdc:apps/web) - Main Next.js application (port 3000)
+- [apps/admin](mdc:apps/admin) - Internal admin console (port 3001)
+
+### Core Packages
+- [packages/@acmecorp/config](mdc:packages/@acmecorp/config) - Shared configurations (ESLint, Prettier, Tailwind)
+- [packages/@acmecorp/env](mdc:packages/@acmecorp/env) - Environment validation with Zod
+- [packages/@acmecorp/db](mdc:packages/@acmecorp/db) - Prisma client and database schema
+- [packages/@acmecorp/ui](mdc:packages/@acmecorp/ui) - shadcn/ui components and styling
+- [packages/@acmecorp/auth](mdc:packages/@acmecorp/auth) - NextAuth configuration and RBAC
+
+### Domain Packages
+- [packages/@acmecorp/users](mdc:packages/@acmecorp/users) - User domain logic
+- [packages/@acmecorp/orgs](mdc:packages/@acmecorp/orgs) - Organization domain logic
+- [packages/@acmecorp/api](mdc:packages/@acmecorp/api) - API layer and contracts
+- [packages/@acmecorp/router](mdc:packages/@acmecorp/router) - Typed route helpers
+- [packages/@acmecorp/icons](mdc:packages/@acmecorp/icons) - Icon system
+- [packages/@acmecorp/email](mdc:packages/@acmecorp/email) - Email templates
+- [packages/@acmecorp/payments](mdc:packages/@acmecorp/payments) - Payment integration
+
+## 🚀 Development Commands
+
+### Root Level (from project root)
+```bash
+pnpm dev                    # Start ALL apps simultaneously
+pnpm build                  # Build all packages and apps
+pnpm lint                   # Lint all packages and apps
+pnpm typecheck             # Type check all TypeScript files
+pnpm db:generate           # Generate Prisma client
+pnpm db:migrate            # Run database migrations
+```
+
+### Package-Specific
+```bash
+pnpm --filter @acmecorp/ui build
+pnpm --filter web dev
+```
+
+## 🔧 Configuration Files
+
+- [package.json](mdc:package.json) - Root package.json with workspace scripts
+- [pnpm-workspace.yaml](mdc:pnpm-workspace.yaml) - pnpm workspace configuration
+- [turbo.json](mdc:turbo.json) - Turborepo pipeline configuration
+- [.cursor/mcp.json](mdc:.cursor/mcp.json) - MCP server configuration for shadcn/ui
+
+## 📦 Package Dependencies
+
+Always use workspace dependencies (`@acmecorp/*`) instead of relative imports:
+```typescript
+// ✅ Correct
+import { db } from "@acmecorp/db";
+import { Button } from "@acmecorp/ui";
+
+// ❌ Avoid
+import { db } from "../../../packages/@acmecorp/db";
+```
+
+## 🌐 Application URLs
+
+When running `pnpm dev`:
+- **Main App**: http://localhost:3000
+- **Admin App**: http://localhost:3001
+
+Both apps run simultaneously from the root command.

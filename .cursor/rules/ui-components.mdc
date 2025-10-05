@@ -1,0 +1,288 @@
+---
+globs: *.tsx,*.css,components.json
+description: "UI components and shadcn/ui patterns"
+---
+
+# UI Components and shadcn/ui Patterns
+
+## 🎨 Design System
+
+This project uses **shadcn/ui** + **Tailwind CSS** for a consistent, accessible design system.
+
+### Core UI Package
+- **Location**: [packages/@acmecorp/ui](mdc:packages/@acmecorp/ui)
+- **Configuration**: [packages/@acmecorp/ui/components.json](mdc:packages/@acmecorp/ui/components.json)
+- **Styles**: [packages/@acmecorp/ui/globals.css](mdc:packages/@acmecorp/ui/globals.css)
+
+## 🧩 Component Patterns
+
+### Basic Component Structure
+```typescript
+import * as React from "react";
+import { cn } from "../../lib/utils";
+
+interface ComponentProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "secondary";
+  size?: "sm" | "md" | "lg";
+}
+
+const Component = React.forwardRef<HTMLDivElement, ComponentProps>(
+  ({ className, variant = "default", size = "md", ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "base-styles",
+          variant === "secondary" && "secondary-styles",
+          size === "lg" && "large-styles",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+Component.displayName = "Component";
+
+export { Component };
+```
+
+### Using Class Variance Authority (CVA)
+```typescript
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../../lib/utils";
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "underline-offset-4 hover:underline text-primary",
+      },
+      size: {
+        default: "h-10 py-2 px-4",
+        sm: "h-9 px-3 rounded-md",
+        lg: "h-11 px-8 rounded-md",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
+```
+
+## 🎯 shadcn/ui Integration
+
+### Adding New Components
+```bash
+# Use the MCP server to add components
+# The shadcn MCP server is configured in .cursor/mcp.json
+
+# Or manually add components to packages/@acmecorp/ui
+cd packages/@acmecorp/ui
+npx shadcn@latest add button
+npx shadcn@latest add card
+npx shadcn@latest add dialog
+```
+
+### Component Configuration
+The [components.json](mdc:packages/@acmecorp/ui/components.json) file configures shadcn/ui:
+
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "globals.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils"
+  }
+}
+```
+
+## 🎨 Styling Patterns
+
+### Using the cn Utility
+```typescript
+import { cn } from "@/lib/utils";
+
+// ✅ Conditional classes
+const buttonClass = cn(
+  "px-4 py-2 rounded-md",
+  isActive && "bg-blue-500 text-white",
+  isDisabled && "opacity-50 cursor-not-allowed",
+  className
+);
+
+// ✅ Variant-based styling
+const cardClass = cn(
+  "rounded-lg border bg-card text-card-foreground shadow-sm",
+  variant === "elevated" && "shadow-lg",
+  size === "large" && "p-6",
+  className
+);
+```
+
+### CSS Variables and Themes
+The design system uses CSS variables defined in [globals.css](mdc:packages/@acmecorp/ui/globals.css):
+
+```css
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222.2 84% 4.9%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222.2 84% 4.9%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 222.2 84% 4.9%;
+  --radius: 0.5rem;
+}
+```
+
+## 🧩 Component Composition
+
+### Compound Components
+```typescript
+// Card component with multiple parts
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+      {...props}
+    />
+  )
+);
+Card.displayName = "Card";
+
+const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
+  )
+);
+CardHeader.displayName = "CardHeader";
+
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  )
+);
+CardContent.displayName = "CardContent";
+
+export { Card, CardHeader, CardContent };
+```
+
+### Using Components in Apps
+```typescript
+// ✅ Import from the UI package
+import { Button, Card, CardHeader, CardContent } from "@acmecorp/ui";
+
+export function UserCard({ user }: { user: User }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h3>{user.name}</h3>
+      </CardHeader>
+      <CardContent>
+        <p>{user.email}</p>
+        <Button variant="outline" size="sm">
+          Edit
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## 🎨 Icon System
+
+### Using Icons
+```typescript
+// ✅ Import from the icons package
+import { Icon } from "@acmecorp/icons";
+
+// Or import specific icons for better tree-shaking
+import { Home, User, Settings } from "@acmecorp/icons";
+
+export function Navigation() {
+  return (
+    <nav>
+      <Icon name="home" size={24} className="text-blue-500" />
+      <Icon name="user" size={20} />
+      <Icon name="settings" size={24} />
+    </nav>
+  );
+}
+```
+
+## 📱 Responsive Design
+
+### Tailwind Responsive Patterns
+```typescript
+const responsiveClass = cn(
+  "grid grid-cols-1", // Mobile first
+  "md:grid-cols-2",   // Medium screens
+  "lg:grid-cols-3",   // Large screens
+  "xl:grid-cols-4"    // Extra large screens
+);
+```
+
+## 🎯 Best Practices
+
+### Component Design
+- **Composition over Inheritance**: Use compound components
+- **Accessibility First**: Always include proper ARIA attributes
+- **Type Safety**: Use TypeScript interfaces for all props
+- **Consistent API**: Follow established patterns across components
+
+### Styling Guidelines
+- Use CSS variables for theming
+- Prefer Tailwind utility classes over custom CSS
+- Use the `cn` utility for conditional classes
+- Follow the established color palette and spacing scale
+
+### Performance
+- Use `React.forwardRef` for components that need refs
+- Implement proper `displayName` for debugging
+- Use `React.memo` for expensive components when appropriate
+- Import icons individually for better tree-shaking
+
+### Accessibility
+- Include proper ARIA labels and roles
+- Ensure keyboard navigation works
+- Use semantic HTML elements
+- Test with screen readers

@@ -1,0 +1,406 @@
+---
+globs: **/api/**/*.ts,**/db/**/*.ts,**/schema.prisma
+description: "API routes and database patterns"
+---
+
+# API Routes and Database Patterns
+
+## 🗄️ Database Layer
+
+### Prisma Configuration
+- **Schema**: [packages/@acmecorp/db/prisma/schema.prisma](mdc:packages/@acmecorp/db/prisma/schema.prisma)
+- **Client**: [packages/@acmecorp/db/src/index.ts](mdc:packages/@acmecorp/db/src/index.ts)
+- **Types**: Generated from Prisma schema
+
+### Database Client Usage
+```typescript
+// ✅ Import the database client
+import { db } from "@acmecorp/db";
+
+// ✅ Use in API routes
+export async function GET(request: NextRequest) {
+  try {
+    const users = await db.user.findMany({
+      include: {
+        organization: true,
+      },
+    });
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error("Database error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+```
+
+### Database Operations
+```typescript
+// ✅ Create operations
+const user = await db.user.create({
+  data: {
+    email: "user@example.com",
+    name: "John Doe",
+    organizationId: "org-123",
+  },
+});
+
+// ✅ Read operations with relations
+const userWithOrg = await db.user.findUnique({
+  where: { id: userId },
+  include: {
+    organization: true,
+    projects: {
+      where: { status: "active" },
+    },
+  },
+});
+
+// ✅ Update operations
+const updatedUser = await db.user.update({
+  where: { id: userId },
+  data: {
+    name: "Updated Name",
+    lastLoginAt: new Date(),
+  },
+});
+
+// ✅ Delete operations
+await db.user.delete({
+  where: { id: userId },
+});
+```
+
+## 🛣️ API Route Patterns
+
+### Next.js App Router API Routes
+```typescript
+// ✅ Standard API route structure
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@acmecorp/db";
+
+// Validation schema
+const createUserSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  organizationId: z.string().uuid(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    // Parse and validate request body
+    const body = await request.json();
+    const validatedData = createUserSchema.parse(body);
+    
+    // Database operation
+    const user = await db.user.create({
+      data: validatedData,
+    });
+    
+    // Return response
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    
+    const users = await db.user.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        organization: true,
+      },
+    });
+    
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Dynamic Route Parameters
+```typescript
+// ✅ Dynamic route: /api/users/[id]/route.ts
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: params.id },
+      include: {
+        organization: true,
+      },
+    });
+    
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json();
+    const updateSchema = z.object({
+      name: z.string().min(2).optional(),
+      email: z.string().email().optional(),
+    });
+    
+    const validatedData = updateSchema.parse(body);
+    
+    const user = await db.user.update({
+      where: { id: params.id },
+      data: validatedData,
+    });
+    
+    return NextResponse.json(user);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## 🔒 Authentication in API Routes
+
+### Session-based Authentication
+```typescript
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get session
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    // Use session data
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+    
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Role-based Access Control
+```typescript
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    // Check if user has admin role
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    
+    await db.user.delete({
+      where: { id: params.id },
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## 📊 API Client Patterns
+
+### Typed API Client
+```typescript
+// ✅ Use the typed API client from @acmecorp/api
+import { api, contracts } from "@acmecorp/api";
+
+// Client-side usage
+const users = await api.users.list({ page: 1, limit: 10 });
+const user = await api.users.get({ id: "user-123" });
+const newUser = await api.users.create({
+  name: "John Doe",
+  email: "john@example.com",
+});
+```
+
+### Error Handling
+```typescript
+// ✅ Proper error handling in API routes
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const validatedData = createUserSchema.parse(body);
+    
+    const user = await db.user.create({
+      data: validatedData,
+    });
+    
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    // Validation errors
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          error: "Validation failed", 
+          details: error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message
+          }))
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Database constraint errors
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Email already exists" },
+        { status: 409 }
+      );
+    }
+    
+    // Generic server errors
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## 🔄 Database Migrations
+
+### Migration Commands
+```bash
+# Generate Prisma client
+pnpm db:generate
+
+# Push schema changes to database
+pnpm db:migrate
+
+# Seed database with sample data
+pnpm db:seed
+
+# Open Prisma Studio
+pnpm db:studio
+```
+
+### Schema Patterns
+```prisma
+// ✅ Prisma schema patterns
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  projects       Project[]
+  
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  GUEST
+}
+```
+
+## 🎯 Best Practices
+
+### API Design
+- Use RESTful conventions for route structure
+- Always validate input with Zod schemas
+- Return consistent error response formats
+- Use proper HTTP status codes
+- Implement proper error logging
+
+### Database Operations
+- Use transactions for multi-step operations
+- Include proper error handling for database errors
+- Use Prisma's include/select for efficient queries
+- Implement proper indexing in the schema
+- Use soft deletes when appropriate
+
+### Security
+- Always authenticate API routes that need protection
+- Implement proper authorization checks
+- Validate all input data
+- Use parameterized queries (Prisma handles this)
+- Implement rate limiting for sensitive endpoints
+
+### Performance
+- Use database indexes for frequently queried fields
+- Implement pagination for list endpoints
+- Use Prisma's select to limit returned fields
+- Consider caching for expensive operations
+- Monitor and optimize slow queries

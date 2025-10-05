@@ -1,0 +1,188 @@
+---
+globs: *.ts,*.tsx
+description: "TypeScript coding conventions and patterns"
+---
+
+# TypeScript Coding Conventions
+
+## 🎯 Core Principles
+
+- **Type Safety**: Always use TypeScript strict mode
+- **Consistency**: Follow established patterns across the codebase
+- **Performance**: Optimize for build times and runtime performance
+- **Maintainability**: Write self-documenting code
+
+## 📝 Code Style
+
+### Imports
+```typescript
+// ✅ Correct import order
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@acmecorp/db";
+import { Button } from "@acmecorp/ui";
+import { cn } from "@/lib/utils";
+```
+
+### Type Definitions
+```typescript
+// ✅ Use interfaces for object shapes
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+}
+
+// ✅ Use type aliases for unions/primitives
+type UserRole = "admin" | "user" | "guest";
+type Status = "loading" | "success" | "error";
+
+// ✅ Use const assertions for immutable data
+const USER_ROLES = ["admin", "user", "guest"] as const;
+type UserRole = typeof USER_ROLES[number];
+```
+
+### Component Props
+```typescript
+// ✅ Use interface for component props
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "default" | "destructive" | "outline";
+  size?: "default" | "sm" | "lg";
+  asChild?: boolean;
+}
+
+// ✅ Use forwardRef for components that need refs
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    // component implementation
+  }
+);
+Button.displayName = "Button";
+```
+
+### API Routes
+```typescript
+// ✅ Use proper Next.js API route patterns
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    
+    if (!id) {
+      return NextResponse.json({ error: "ID required" }, { status: 400 });
+    }
+    
+    const data = await db.user.findUnique({ where: { id } });
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+```
+
+### Validation with Zod
+```typescript
+// ✅ Always validate input with Zod schemas
+const createUserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  role: z.enum(["admin", "user", "guest"]),
+});
+
+type CreateUserInput = z.infer<typeof createUserSchema>;
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const validatedData = createUserSchema.parse(body);
+  // use validatedData
+}
+```
+
+## 🔧 Utility Functions
+
+### Class Name Merging
+```typescript
+// ✅ Use the cn utility for conditional classes
+import { cn } from "@/lib/utils";
+
+const buttonClass = cn(
+  "px-4 py-2 rounded-md",
+  variant === "destructive" && "bg-red-500 text-white",
+  size === "lg" && "px-6 py-3",
+  className
+);
+```
+
+### Error Handling
+```typescript
+// ✅ Use proper error handling patterns
+export async function getUser(id: string) {
+  try {
+    const user = await db.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return { success: true, data: user };
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+```
+
+## 📦 Package Exports
+
+### Package Index Files
+```typescript
+// ✅ Export everything from index.ts
+export { Button } from "./components/ui/button";
+export { Card, CardHeader, CardContent } from "./components/ui/card";
+export { cn } from "./lib/utils";
+export type { ButtonProps } from "./components/ui/button";
+```
+
+### Type Exports
+```typescript
+// ✅ Always export types alongside implementations
+export interface User {
+  id: string;
+  email: string;
+}
+
+export const userService = {
+  async findById(id: string): Promise<User | null> {
+    // implementation
+  }
+};
+```
+
+## 🚫 Common Anti-Patterns
+
+```typescript
+// ❌ Don't use any type
+const data: any = await fetchData();
+
+// ❌ Don't use non-null assertion without proper checks
+const user = await db.user.findUnique({ where: { id } })!;
+
+// ❌ Don't use function overloads when simple union types work
+function process(data: string): string;
+function process(data: number): number;
+// Better: function process(data: string | number): string | number
+
+// ❌ Don't ignore TypeScript errors
+// @ts-ignore
+const result = someFunction();
+```
+
+## ✅ Best Practices
+
+- Always use strict TypeScript configuration
+- Prefer `interface` over `type` for object shapes
+- Use `const assertions` for immutable data
+- Validate all external inputs with Zod
+- Use proper error boundaries and error handling
+- Export types alongside implementations
+- Use workspace dependencies (`@acmecorp/*`) instead of relative imports
+- Follow the established file naming conventions (kebab-case for files, PascalCase for components)

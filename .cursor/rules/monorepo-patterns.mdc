@@ -1,0 +1,224 @@
+---
+globs: package.json,tsup.config.ts,turbo.json,pnpm-workspace.yaml
+description: "Monorepo patterns and package management"
+---
+
+# Monorepo Patterns and Package Management
+
+## 🏗️ Monorepo Architecture
+
+This project uses **pnpm workspaces** + **Turborepo** for optimal build performance and dependency management.
+
+### Workspace Structure
+- **Root**: [package.json](mdc:package.json) - Contains workspace scripts and dev dependencies
+- **Apps**: [apps/](mdc:apps/) - Next.js applications (web, admin)
+- **Packages**: [packages/@acmecorp/](mdc:packages/@acmecorp/) - Shared libraries and utilities
+- **Config**: [pnpm-workspace.yaml](mdc:pnpm-workspace.yaml) - Workspace configuration
+- **Build**: [turbo.json](mdc:turbo.json) - Turborepo pipeline configuration
+
+## 📦 Package Patterns
+
+### Package Structure
+Each package should follow this structure:
+```
+packages/@acmecorp/package-name/
+├── package.json          # Package configuration
+├── tsconfig.json         # TypeScript configuration
+├── tsup.config.ts        # Build configuration
+├── src/
+│   ├── index.ts          # Main entry point
+│   ├── lib/              # Utilities and helpers
+│   └── components/       # React components (if applicable)
+├── dist/                 # Built output (generated)
+└── README.md             # Package documentation
+```
+
+### Package.json Configuration
+```json
+{
+  "name": "@acmecorp/package-name",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+### Build Configuration (tsup.config.ts)
+```typescript
+import { defineConfig } from "tsup";
+
+export default defineConfig({
+  entry: ["src/index.ts"],
+  format: ["esm"],
+  dts: process.env.NODE_ENV === "production",
+  splitting: false,
+  sourcemap: process.env.NODE_ENV === "production",
+  clean: true,
+  external: [
+    "react",
+    "react-dom",
+    // Add other external dependencies
+  ],
+});
+```
+
+## 🔄 Dependency Management
+
+### Workspace Dependencies
+```bash
+# ✅ Add workspace dependency
+pnpm add @acmecorp/ui --workspace --filter web
+
+# ✅ Add external dependency to specific package
+pnpm add zod --filter @acmecorp/api
+
+# ✅ Add dev dependency to root
+pnpm add -D -w typescript
+```
+
+### Import Patterns
+```typescript
+// ✅ Use workspace imports
+import { db } from "@acmecorp/db";
+import { Button } from "@acmecorp/ui";
+import { validateEnv } from "@acmecorp/env";
+
+// ❌ Avoid relative imports across packages
+import { db } from "../../../packages/@acmecorp/db";
+```
+
+## 🚀 Build and Development
+
+### Turborepo Configuration
+The [turbo.json](mdc:turbo.json) defines build pipelines:
+
+```json
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
+```
+
+### Development Commands
+```bash
+# Start all apps and packages
+pnpm dev
+
+# Build everything
+pnpm build
+
+# Build specific package
+pnpm --filter @acmecorp/ui build
+
+# Run command in specific workspace
+pnpm --filter web lint
+```
+
+## 📋 Package Types
+
+### Core Packages
+- **@acmecorp/config**: Shared configurations (ESLint, Prettier, Tailwind)
+- **@acmecorp/env**: Environment validation with Zod
+- **@acmecorp/db**: Prisma client and database schema
+- **@acmecorp/ui**: shadcn/ui components and styling
+
+### Domain Packages
+- **@acmecorp/users**: User domain logic and types
+- **@acmecorp/orgs**: Organization domain logic and types
+- **@acmecorp/auth**: Authentication and authorization
+- **@acmecorp/api**: API contracts and client
+
+### Utility Packages
+- **@acmecorp/router**: Typed route helpers
+- **@acmecorp/icons**: Icon system
+- **@acmecorp/email**: Email templates
+- **@acmecorp/payments**: Payment integration
+
+## 🔧 Adding New Packages
+
+### 1. Create Package Directory
+```bash
+mkdir packages/@acmecorp/new-package
+cd packages/@acmecorp/new-package
+```
+
+### 2. Initialize Package
+```bash
+pnpm init
+```
+
+### 3. Add Build Configuration
+```typescript
+// tsup.config.ts
+import { defineConfig } from "tsup";
+
+export default defineConfig({
+  entry: ["src/index.ts"],
+  format: ["esm"],
+  dts: true,
+  clean: true,
+});
+```
+
+### 4. Add TypeScript Configuration
+```json
+// tsconfig.json
+{
+  "extends": "@acmecorp/config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+### 5. Update Workspace (already configured in pnpm-workspace.yaml)
+
+## 🎯 Best Practices
+
+### Package Design
+- **Single Responsibility**: Each package should have one clear purpose
+- **Minimal Dependencies**: Keep external dependencies to a minimum
+- **Type Safety**: Always export types alongside implementations
+- **Documentation**: Include README.md for each package
+
+### Build Optimization
+- Use Turborepo caching for faster builds
+- Configure proper build dependencies in turbo.json
+- Use external dependencies in tsup.config.ts to avoid bundling
+
+### Development Workflow
+- Always run `pnpm build` before committing
+- Use `pnpm typecheck` to verify TypeScript
+- Test packages individually with `pnpm --filter package-name build`
+
+### Dependency Management
+- Use workspace dependencies for internal packages
+- Keep peer dependencies minimal
+- Use exact versions for critical dependencies
+- Regularly update dependencies with `pnpm update`
